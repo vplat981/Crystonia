@@ -1,10 +1,9 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 import os
-import asyncpg
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -13,10 +12,10 @@ load_dotenv()
 
 app = FastAPI(title="Crystonia Bank API", version="1.0.0")
 
-# CORS middleware
+# CORS middleware - allows your frontend to connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],  # In production, replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +54,50 @@ class BankResponse(BaseModel):
     balance: Optional[float] = None
     transaction: Optional[TransactionResponse] = None
 
-# Helper functions
+# ============= ROOT ENDPOINT - FIXES THE "NOT FOUND" ERROR =============
+@app.get("/")
+async def root():
+    """Welcome page for Crystonia Bank API"""
+    return {
+        "name": "Crystonia Bank API",
+        "version": "1.0.0",
+        "status": "operational",
+        "message": "Welcome to the Royal Bank of Crystonia!",
+        "endpoints": {
+            "/": "This welcome message",
+            "/balance/{user_id}": "Get user balance (GET)",
+            "/transactions/{user_id}": "Get user transactions (GET)",
+            "/deposit": "Deposit funds (POST)",
+            "/withdraw": "Withdraw funds (POST)",
+            "/health": "Health check (GET)"
+        },
+        "ally_exchange_rates": {
+            "Cyvathon": "1 CRY = 1 Cybuck",
+            "Aqualithia": "1 CRY = 1 Pufferbuck"
+        }
+    }
+
+# ============= HEALTH CHECK =============
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Test Supabase connection
+        supabase.table("balances").select("count").limit(1).execute()
+        return {
+            "status": "healthy", 
+            "supabase": "connected",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy", 
+            "supabase": "disconnected", 
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+# ============= HELPER FUNCTIONS =============
 async def get_user_balance(user_id: str) -> float:
     """Get current balance for a user"""
     try:
@@ -110,22 +152,7 @@ async def add_transaction(user_id: str, transaction_type: str, amount: float, de
         print(f"Error adding transaction: {e}")
         return None
 
-# API Endpoints
-
-@app.get("/")
-async def root():
-    return {
-        "name": "Crystonia Bank API",
-        "version": "1.0.0",
-        "status": "operational",
-        "endpoints": {
-            "/balance/{user_id}": "Get user balance",
-            "/transactions/{user_id}": "Get user transactions",
-            "/deposit": "Deposit funds",
-            "/withdraw": "Withdraw funds"
-        }
-    }
-
+# ============= API ENDPOINTS =============
 @app.get("/balance/{user_id}", response_model=BalanceResponse)
 async def get_balance(user_id: str):
     """Get current balance for a user"""
@@ -268,16 +295,6 @@ async def withdraw(transaction: TransactionRequest):
     except Exception as e:
         print(f"Error in withdraw: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during withdrawal")
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    try:
-        # Test Supabase connection
-        supabase.table("balances").select("count").limit(1).execute()
-        return {"status": "healthy", "supabase": "connected"}
-    except Exception as e:
-        return {"status": "unhealthy", "supabase": "disconnected", "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
