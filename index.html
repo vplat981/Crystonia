@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crystonia · Bank</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f4fa;
+      color: #0b1a2b;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 900px;
+      width: 100%;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      background: white;
+      padding: 1rem 2rem;
+      border-radius: 40px;
+      box-shadow: 0 8px 20px rgba(0,20,40,0.06);
+    }
+    .logo h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e3b5c;
+      letter-spacing: -0.5px;
+    }
+    .logo span {
+      background: #d4e2f0;
+      padding: 0.2rem 0.8rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1e3b5c;
+      margin-left: 8px;
+    }
+    .currency-badge {
+      background: #1e3b5c;
+      color: white;
+      padding: 0.4rem 1.2rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .card {
+      background: white;
+      border-radius: 32px;
+      padding: 2rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e9eef3;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #1a314a;
+    }
+    .card h2 i {
+      color: #3a75a8;
+    }
+    .balance-display {
+      background: #f2f7fc;
+      border-radius: 28px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .balance-amount {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #0b1a2b;
+    }
+    .balance-amount small {
+      font-size: 1rem;
+      font-weight: 400;
+      color: #4a6a86;
+      margin-left: 8px;
+    }
+    .exchange-row {
+      display: flex;
+      justify-content: space-between;
+      background: #f8faff;
+      padding: 0.6rem 1rem;
+      border-radius: 60px;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .exchange-row span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+      color: #1a314a;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid #d9e3ed;
+      border-radius: 60px;
+      font-size: 1rem;
+      background: #fafcfe;
+      transition: 0.15s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #1e3b5c;
+      box-shadow: 0 0 0 3px rgba(30, 59, 92, 0.1);
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .btn {
+      border: none;
+      padding: 0.8rem 2rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: #1e3b5c;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #143049;
+      transform: translateY(-1px);
+    }
+    .btn-success {
+      background: #2a7a5e;
+      color: white;
+    }
+    .btn-success:hover {
+      background: #1e624a;
+    }
+    .btn-danger {
+      background: #b13e4b;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #932e3a;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #bccddb;
+      color: #1a314a;
+    }
+    .btn-outline:hover {
+      background: #f0f4fa;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .status {
+      padding: 0.8rem 1.2rem;
+      border-radius: 60px;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .status.success {
+      display: block;
+      background: #e4f4ec;
+      color: #1a5a44;
+      border: 1px solid #b8d9cb;
+    }
+    .status.error {
+      display: block;
+      background: #fce8ea;
+      color: #8a2e3a;
+      border: 1px solid #f5cfd3;
+    }
+    .status.info {
+      display: block;
+      background: #e4edf6;
+      color: #1a3a57;
+      border: 1px solid #c5d8e8;
+    }
+    .transaction-list {
+      margin-top: 1.5rem;
+      border-top: 1px solid #e9eef3;
+      padding-top: 1.5rem;
+    }
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #f0f4fa;
+      font-size: 0.9rem;
+    }
+    .transaction-item:last-child {
+      border-bottom: 0;
+    }
+    .transaction-type {
+      font-weight: 500;
+    }
+    .transaction-type.deposit { color: #2a7a5e; }
+    .transaction-type.withdraw { color: #b13e4b; }
+    .transaction-amount {
+      font-weight: 600;
+    }
+    .text-muted {
+      color: #4e6f8a;
+      font-size: 0.85rem;
+    }
+    .flex {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mt-2 { margin-top: 1rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    @media (max-width: 600px) {
+      .header { flex-direction: column; align-items: start; gap: 12px; }
+      .btn-group { flex-direction: column; }
+      .btn { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- header -->
+  <header class="header">
+    <div class="logo">
+      <h1>✦ Crystonia <span>Bank</span></h1>
+    </div>
+    <div class="currency-badge"><i class="fas fa-coins"></i> Crystalline (CRY)</div>
+  </header>
+
+  <!-- main bank card -->
+  <div class="card">
+    <h2><i class="fas fa-university"></i> Royal Bank of Crystonia</h2>
+    
+    <!-- balance -->
+    <div class="balance-display">
+      <span class="text-muted">Your balance</span>
+      <span class="balance-amount" id="balanceDisplay">0 <small>CRY</small></span>
+    </div>
+
+    <!-- exchange rates -->
+    <div class="exchange-row">
+      <span><i class="fas fa-exchange-alt"></i> 1 CRY = 1 Cybuck (Cyvathon)</span>
+      <span><i class="fas fa-exchange-alt"></i> 1 CRY = 1 Pufferbuck (Aqualithia)</span>
+      <span><i class="fas fa-handshake"></i> Ally: Cyvathon</span>
+    </div>
+
+    <!-- transaction form -->
+    <div class="form-group">
+      <label for="amountInput">Amount (CRY)</label>
+      <input type="number" id="amountInput" placeholder="Enter amount..." min="0.01" step="0.01" value="10" />
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-success" id="depositBtn"><i class="fas fa-arrow-down"></i> Deposit</button>
+      <button class="btn btn-danger" id="withdrawBtn"><i class="fas fa-arrow-up"></i> Withdraw</button>
+      <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+
+    <!-- status messages -->
+    <div id="statusMessage" class="status"></div>
+
+    <!-- transactions -->
+    <div class="transaction-list">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <span style="font-weight: 600; font-size: 0.95rem;"><i class="fas fa-history"></i> Recent transactions</span>
+        <span class="text-muted" id="transactionCount">0 transactions</span>
+      </div>
+      <div id="transactionList">
+        <div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="margin-top: 1rem; font-size: 0.75rem; color: #5f7f99; background: #eaf1f9; padding: 0.4rem 1.5rem; border-radius: 60px;">
+    <i class="fas fa-database"></i> Supabase · Python FastAPI · Render ready
+  </div>
+</div>
+
+<script>
+  // ----- Configuration -----
+  // Replace with your Supabase URL and anon key
+  const SUPABASE_URL = 'https://your-project.supabase.co';
+  const SUPABASE_ANON_KEY = 'your-anon-key';
+
+  // For demo, we'll use a fixed user ID (in real app, use auth)
+  const USER_ID = 'demo-user-1';
+
+  // ----- API Client (direct fetch to Supabase REST) -----
+  const supabaseHeaders = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+
+  // ----- State -----
+  let currentBalance = 0;
+  let transactions = [];
+
+  // ----- DOM refs -----
+  const balanceDisplay = document.getElementById('balanceDisplay');
+  const amountInput = document.getElementById('amountInput');
+  const depositBtn = document.getElementById('depositBtn');
+  const withdrawBtn = document.getElementById('withdrawBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const statusDiv = document.getElementById('statusMessage');
+  const transactionListEl = document.getElementById('transactionList');
+  const transactionCountEl = document.getElementById('transactionCount');
+
+  // ----- Helper: show status -----
+  function showStatus(message, type = 'info') {
+    statusDiv.textContent = message;
+    statusDiv.className = `status ${type}`;
+    setTimeout(() => {
+      statusDiv.className = 'status';
+    }, 5000);
+  }
+
+  // ----- API: fetch balance -----
+  async function fetchBalance() {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/balances?user_id=eq.${USER_ID}&select=amount`;
+      const res = await fetch(url, { headers: supabaseHeaders });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        currentBalance = Number(data[0].amount);
+      } else {
+        // create balance if not exists
+        await createBalance();
+        currentBalance = 0;
+      }
+      updateBalanceDisplay();
+      return currentBalance;
+    } catch (err) {
+      console.error('Fetch balance error:', err);
+      showStatus('⚠️ Could not fetch balance. Is Supabase configured?', 'error');
+      return 0;
+    }
+  }
+
+  // ----- API: create balance (if not exists) -----
+  async function createBalance() {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/balances`;
+      const body = JSON.stringify({ user_id: USER_ID, amount: 0 });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: body
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return true;
+    } catch (err) {
+      console.error('Create balance error:', err);
+      return false;
+    }
+  }
+
+  // ----- API: update balance -----
+  async function updateBalance(newAmount) {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/balances?user_id=eq.${USER_ID}`;
+      const body = JSON.stringify({ amount: newAmount });
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: supabaseHeaders,
+        body: body
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      currentBalance = newAmount;
+      updateBalanceDisplay();
+      return true;
+    } catch (err) {
+      console.error('Update balance error:', err);
+      showStatus('⚠️ Could not update balance.', 'error');
+      return false;
+    }
+  }
+
+  // ----- API: add transaction -----
+  async function addTransaction(type, amount, description = '') {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/transactions`;
+      const body = JSON.stringify({
+        user_id: USER_ID,
+        type: type,
+        amount: amount,
+        description: description || `${type} of ${amount} CRY`
+      });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: body
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return true;
+    } catch (err) {
+      console.error('Add transaction error:', err);
+      return false;
+    }
+  }
+
+  // ----- API: fetch transactions -----
+  async function fetchTransactions(limit = 20) {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/transactions?user_id=eq.${USER_ID}&order=created_at.desc&limit=${limit}`;
+      const res = await fetch(url, { headers: supabaseHeaders });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      transactions = data || [];
+      renderTransactions();
+      return transactions;
+    } catch (err) {
+      console.error('Fetch transactions error:', err);
+      return [];
+    }
+  }
+
+  // ----- UI: update balance display -----
+  function updateBalanceDisplay() {
+    balanceDisplay.innerHTML = `${currentBalance.toFixed(2)} <small>CRY</small>`;
+  }
+
+  // ----- UI: render transactions -----
+  function renderTransactions() {
+    if (!transactions || transactions.length === 0) {
+      transactionListEl.innerHTML = `<div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>`;
+      transactionCountEl.textContent = '0 transactions';
+      return;
+    }
+    transactionCountEl.textContent = `${transactions.length} transactions`;
+    transactionListEl.innerHTML = transactions.map(t => {
+      const typeClass = t.type === 'deposit' ? 'deposit' : 'withdraw';
+      const icon = t.type === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up';
+      const sign = t.type === 'deposit' ? '+' : '-';
+      return `
+        <div class="transaction-item">
+          <span class="transaction-type ${typeClass}">
+            <i class="fas ${icon}"></i> ${t.type.charAt(0).toUpperCase() + t.type.slice(1)}
+          </span>
+          <span>${t.description || ''}</span>
+          <span class="transaction-amount">${sign}${Number(t.amount).toFixed(2)} CRY</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ----- Core: deposit -----
+  async function handleDeposit() {
+    const amount = parseFloat(amountInput.value);
+    if (!amount || amount <= 0) {
+      showStatus('❌ Please enter a valid positive amount.', 'error');
+      return;
+    }
+    const newBalance = currentBalance + amount;
+    const success = await updateBalance(newBalance);
+    if (success) {
+      await addTransaction('deposit', amount);
+      await fetchTransactions();
+      showStatus(`✅ Deposited ${amount.toFixed(2)} CRY. New balance: ${newBalance.toFixed(2)} CRY`, 'success');
+    }
+  }
+
+  // ----- Core: withdraw -----
+  async function handleWithdraw() {
+    const amount = parseFloat(amountInput.value);
+    if (!amount || amount <= 0) {
+      showStatus('❌ Please enter a valid positive amount.', 'error');
+      return;
+    }
+    if (amount > currentBalance) {
+      showStatus(`❌ Insufficient balance. You have ${currentBalance.toFixed(2)} CRY.`, 'error');
+      return;
+    }
+    const newBalance = currentBalance - amount;
+    const success = await updateBalance(newBalance);
+    if (success) {
+      await addTransaction('withdraw', amount);
+      await fetchTransactions();
+      showStatus(`✅ Withdrew ${amount.toFixed(2)} CRY. New balance: ${newBalance.toFixed(2)} CRY`, 'success');
+    }
+  }
+
+  // ----- Core: refresh -----
+  async function handleRefresh() {
+    showStatus('🔄 Refreshing...', 'info');
+    await fetchBalance();
+    await fetchTransactions();
+    showStatus('✅ Refreshed!', 'success');
+  }
+
+  // ----- Initial load -----
+  async function init() {
+    // Check if Supabase is configured
+    if (SUPABASE_URL.includes('your-project')) {
+      showStatus('⚠️ Please configure Supabase URL and anon key in the script.', 'error');
+      // But keep demo working with fake data
+      // For demo, we'll show a fake balance
+      currentBalance = 12450;
+      updateBalanceDisplay();
+      // Show demo transactions
+      transactions = [
+        { type: 'deposit', amount: 5000, description: 'Initial minting' },
+        { type: 'deposit', amount: 2450, description: 'Trade with Cyvathon' },
+        { type: 'withdraw', amount: 1000, description: 'Marketplace purchase' },
+      ];
+      renderTransactions();
+      transactionCountEl.textContent = '3 transactions (demo)';
+      return;
+    }
+
+    try {
+      await fetchBalance();
+      await fetchTransactions();
+      showStatus('✅ Connected to Supabase', 'success');
+    } catch (err) {
+      console.error('Init error:', err);
+      showStatus('⚠️ Could not connect to Supabase. Check URL and key.', 'error');
+    }
+  }
+
+  // ----- Event listeners -----
+  depositBtn.addEventListener('click', handleDeposit);
+  withdrawBtn.addEventListener('click', handleWithdraw);
+  refreshBtn.addEventListener('click', handleRefresh);
+
+  // Enter key on amount input triggers deposit
+  amountInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      depositBtn.click();
+    }
+  });
+
+  // ----- Start -----
+  init();
+</script>
+</body>
+</html>
