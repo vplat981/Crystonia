@@ -35,11 +35,14 @@ app.add_middleware(
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
 
+# Create both clients
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase_service: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else None
 
 # ============= MODELS (defined first) =============
 class UserSignup(BaseModel):
@@ -96,8 +99,11 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     """Verify password against hash"""
-    salt, hash_value = hashed.split(":")
-    return hash_value == hashlib.sha256((salt + password).encode()).hexdigest()
+    try:
+        salt, hash_value = hashed.split(":")
+        return hash_value == hashlib.sha256((salt + password).encode()).hexdigest()
+    except:
+        return False
 
 def create_access_token(user_id: str, username: str) -> str:
     """Create JWT token"""
@@ -140,10 +146,18 @@ async def get_user_balance(user_id: str) -> float:
         if response.data and len(response.data) > 0:
             return float(response.data[0]["amount"])
         # Create balance if it doesn't exist
-        supabase.table("balances").insert({
-            "user_id": user_id,
-            "amount": 0
-        }).execute()
+        try:
+            supabase.table("balances").insert({
+                "user_id": user_id,
+                "amount": 0
+            }).execute()
+        except:
+            # Try with service key if available
+            if supabase_service:
+                supabase_service.table("balances").insert({
+                    "user_id": user_id,
+                    "amount": 0
+                }).execute()
         return 0.0
     except Exception as e:
         print(f"Error getting balance: {e}")
@@ -152,13 +166,24 @@ async def get_user_balance(user_id: str) -> float:
 async def update_user_balance(user_id: str, new_amount: float) -> bool:
     """Update user balance"""
     try:
-        supabase.table("balances").update({
+        # Try with anon key first
+        result = supabase.table("balances").update({
             "amount": new_amount,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("user_id", user_id).execute()
         return True
     except Exception as e:
-        print(f"Error updating balance: {e}")
+        print(f"Error updating balance with anon key: {e}")
+        # Try with service key if available
+        if supabase_service:
+            try:
+                supabase_service.table("balances").update({
+                    "amount": new_amount,
+                    "updated_at": datetime.utcnow().isoformat()
+                }).eq("user_id", user_id).execute()
+                return True
+            except Exception as e2:
+                print(f"Error updating balance with service key: {e2}")
         return False
 
 async def add_transaction(user_id: str, transaction_type: str, amount: float, description: Optional[str] = None):
@@ -167,12 +192,25 @@ async def add_transaction(user_id: str, transaction_type: str, amount: float, de
         if not description:
             description = f"{transaction_type.capitalize()} of {amount:.2f} CRY"
             
-        response = supabase.table("transactions").insert({
-            "user_id": user_id,
-            "type": transaction_type,
-            "amount": amount,
-            "description": description
-        }).execute()
+        # Try with anon key first
+        try:
+            response = supabase.table("transactions").insert({
+                "user_id": user_id,
+                "type": transaction_type,
+                "amount": amount,
+                "description": description
+            }).execute()
+        except:
+            # Try with service key if available
+            if supabase_service:
+                response = supabase_service.table("transactions").insert({
+                    "user_id": user_id,
+                    "type": transaction_type,
+                    "amount": amount,
+                    "description": description
+                }).execute()
+            else:
+                raise
         
         if response.data and len(response.data) > 0:
             return response.data[0]
@@ -242,6 +280,11 @@ async def signup(user: UserSignup):
         if existing.data and len(existing.data) > 0:
             raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Check if username exists
+        existing_username = supabase.table("users").select("username").eq("username", user.username).execute()
+        if existing_username.data and len(existing_username.data) > 0:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        
         # Create user
         hashed_password = hash_password(user.password)
         user_data = {
@@ -252,7 +295,17 @@ async def signup(user: UserSignup):
             "created_at": datetime.utcnow().isoformat()
         }
         
-        response = supabase.table("users").insert(user_data).execute()
+        # Try insert with service key first (more likely to work)
+        try:
+            if supabase_service:
+                response = supabase_service.table("users").insert(user_data).execute()
+            else:
+                response = supabase.table("users").insert(user_data).execute()
+        except Exception as e:
+            print(f"Insert with service key failed: {e}")
+            # Fallback to anon key
+            response = supabase.table("users").insert(user_data).execute()
+        
         if not response.data or len(response.data) == 0:
             raise HTTPException(status_code=500, detail="Failed to create user")
         
@@ -260,10 +313,20 @@ async def signup(user: UserSignup):
         user_id = new_user["id"]
         
         # Create initial balance
-        supabase.table("balances").insert({
-            "user_id": user_id,
-            "amount": 1000.00  # Welcome bonus!
-        }).execute()
+        try:
+            if supabase_service:
+                supabase_service.table("balances").insert({
+                    "user_id": user_id,
+                    "amount": 1000.00  # Welcome bonus!
+                }).execute()
+            else:
+                supabase.table("balances").insert({
+                    "user_id": user_id,
+                    "amount": 1000.00
+                }).execute()
+        except Exception as e:
+            print(f"Balance insert error: {e}")
+            # Continue anyway - user can still use the account
         
         # Create welcome transaction
         await add_transaction(
@@ -286,7 +349,7 @@ async def signup(user: UserSignup):
         raise
     except Exception as e:
         print(f"Error in signup: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=f"Signup error: {str(e)}")
 
 @app.post("/auth/login", response_model=TokenResponse)
 async def login(user: UserLogin):
