@@ -156,20 +156,13 @@
       gap: 8px;
       text-decoration: none;
     }
-    .btn-primary {
-      background: #1e3b5c;
-      color: white;
-    }
-    .btn-primary:hover {
-      background: #143049;
-      transform: translateY(-1px);
-    }
     .btn-success {
       background: #2a7a5e;
       color: white;
     }
     .btn-success:hover {
       background: #1e624a;
+      transform: translateY(-1px);
     }
     .btn-danger {
       background: #b13e4b;
@@ -177,6 +170,7 @@
     }
     .btn-danger:hover {
       background: #932e3a;
+      transform: translateY(-1px);
     }
     .btn-outline {
       background: transparent;
@@ -248,11 +242,24 @@
       align-items: center;
       gap: 6px;
     }
-    .mt-2 { margin-top: 1rem; }
-    .mb-2 { margin-bottom: 1rem; }
     .loading {
       opacity: 0.6;
       pointer-events: none;
+    }
+    .server-status {
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      border-radius: 60px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .server-status.online {
+      background: #d4edda;
+      color: #155724;
+    }
+    .server-status.offline {
+      background: #f8d7da;
+      color: #721c24;
     }
     @media (max-width: 600px) {
       .header { flex-direction: column; align-items: start; gap: 12px; }
@@ -268,7 +275,10 @@
     <div class="logo">
       <h1>✦ Crystonia <span>Bank</span></h1>
     </div>
-    <div class="currency-badge"><i class="fas fa-coins"></i> Crystalline (CRY)</div>
+    <div class="flex" style="gap: 12px; flex-wrap: wrap;">
+      <div class="currency-badge"><i class="fas fa-coins"></i> Crystalline (CRY)</div>
+      <span id="serverStatus" class="server-status offline"><i class="fas fa-circle"></i> Connecting...</span>
+    </div>
   </header>
 
   <!-- main bank card -->
@@ -316,15 +326,18 @@
   </div>
 
   <!-- footer -->
-  <div style="margin-top: 1rem; font-size: 0.75rem; color: #5f7f99; background: #eaf1f9; padding: 0.4rem 1.5rem; border-radius: 60px;">
-    <i class="fas fa-database"></i> Supabase · Python FastAPI · Render
+  <div style="margin-top: 1rem; font-size: 0.75rem; color: #5f7f99; background: #eaf1f9; padding: 0.4rem 1.5rem; border-radius: 60px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+    <span><i class="fas fa-database"></i> Supabase</span>
+    <span><i class="fas fa-server"></i> Python FastAPI</span>
+    <span><i class="fas fa-cloud"></i> Render</span>
+    <span><i class="fas fa-globe"></i> crystonia.onrender.com</span>
   </div>
 </div>
 
 <script>
   // ----- Configuration -----
-  // Replace with your Render backend URL when deployed
-  const API_BASE_URL = 'http://localhost:8000'; // Change to your Render URL: https://your-app.onrender.com
+  // Your backend API URL
+  const API_BASE_URL = 'https://crystonia.onrender.com';
   
   // Demo user - in production, use authentication
   const USER_ID = 'demo-user-1';
@@ -342,6 +355,7 @@
   const statusDiv = document.getElementById('statusMessage');
   const transactionListEl = document.getElementById('transactionList');
   const transactionCountEl = document.getElementById('transactionCount');
+  const serverStatusEl = document.getElementById('serverStatus');
 
   // ----- Helper: show status -----
   function showStatus(message, type = 'info') {
@@ -358,6 +372,33 @@
       document.querySelector('.card').classList.add('loading');
     } else {
       document.querySelector('.card').classList.remove('loading');
+    }
+  }
+
+  // ----- Helper: update server status -----
+  function updateServerStatus(online) {
+    if (online) {
+      serverStatusEl.className = 'server-status online';
+      serverStatusEl.innerHTML = '<i class="fas fa-circle"></i> Online';
+    } else {
+      serverStatusEl.className = 'server-status offline';
+      serverStatusEl.innerHTML = '<i class="fas fa-circle"></i> Offline';
+    }
+  }
+
+  // ----- API: health check -----
+  async function checkHealth() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      if (response.ok) {
+        updateServerStatus(true);
+        return true;
+      }
+      updateServerStatus(false);
+      return false;
+    } catch (err) {
+      updateServerStatus(false);
+      return false;
     }
   }
 
@@ -529,6 +570,7 @@
   async function handleRefresh() {
     setLoading(true);
     try {
+      await checkHealth();
       await fetchBalance();
       await fetchTransactions();
       showStatus('✅ Refreshed!', 'success');
@@ -543,9 +585,19 @@
   async function init() {
     setLoading(true);
     try {
+      // Check health first
+      const isHealthy = await checkHealth();
+      if (!isHealthy) {
+        showStatus('⚠️ Backend server is not responding. Please try again later.', 'error');
+        // Still try to load data (might fail gracefully)
+      }
+      
       await fetchBalance();
       await fetchTransactions();
-      showStatus('✅ Connected to backend', 'success');
+      
+      if (isHealthy) {
+        showStatus('✅ Connected to backend', 'success');
+      }
     } catch (err) {
       console.error('Init error:', err);
       showStatus('⚠️ Could not connect to backend. Make sure the server is running.', 'error');
@@ -566,6 +618,15 @@
       depositBtn.click();
     }
   });
+
+  // ----- Auto-refresh every 30 seconds -----
+  setInterval(async () => {
+    await checkHealth();
+    if (serverStatusEl.classList.contains('online')) {
+      await fetchBalance();
+      await fetchTransactions();
+    }
+  }, 30000);
 
   // ----- Start -----
   init();
