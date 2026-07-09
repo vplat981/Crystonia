@@ -1,22 +1,33 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+import hashlib
+import hmac
+import secrets
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import jwt
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI(title="Crystonia Bank API", version="1.0.0")
 
-# CORS middleware - allows your frontend to connect
+# Security
+security = HTTPBearer()
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,9 +42,32 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Pydantic models
-class TransactionRequest(BaseModel):
+# ============= MODELS =============
+class UserSignup(BaseModel):
+    username: str
+    email: str
+    password: str
+    full_name: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
     user_id: str
+    username: str
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    full_name: Optional[str]
+    balance: float
+    created_at: datetime
+
+class TransactionRequest(BaseModel):
     amount: float = Field(gt=0, description="Amount must be greater than 0")
 
 class TransactionResponse(BaseModel):
@@ -44,117 +78,80 @@ class TransactionResponse(BaseModel):
     description: Optional[str]
     created_at: datetime
 
-class BalanceResponse(BaseModel):
-    user_id: str
-    amount: float
-    updated_at: datetime
-
 class BankResponse(BaseModel):
     success: bool
     message: str
     balance: Optional[float] = None
     transaction: Optional[TransactionResponse] = None
 
-# ============= ROOT ENDPOINT - SERVES HTML FRONTEND =============
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Serve the Crystonia Bank frontend"""
-    try:
-        with open("index.html", "r") as f:
-            html_content = f.read()
-        return html_content
-    except FileNotFoundError:
-        # Fallback if index.html doesn't exist
-        return """
-        <html>
-            <head><title>Crystonia Bank</title></head>
-            <body>
-                <h1>✦ Crystonia Bank</h1>
-                <p>API is running but index.html not found.</p>
-                <p>Available endpoints:</p>
-                <ul>
-                    <li><a href="/health">/health</a></li>
-                    <li><a href="/balance/demo-user-1">/balance/demo-user-1</a></li>
-                    <li><a href="/transactions/demo-user-1">/transactions/demo-user-1</a></li>
-                </ul>
-            </body>
-        </html>
-        """
-
-# ============= API INFO ENDPOINT =============
-@app.get("/api")
-async def api_info():
-    """API information endpoint"""
-    return {
-        "name": "Crystonia Bank API",
-        "version": "1.0.0",
-        "status": "operational",
-        "message": "Welcome to the Royal Bank of Crystonia!",
-        "endpoints": {
-            "/": "HTML Frontend",
-            "/api": "This API info",
-            "/balance/{user_id}": "Get user balance (GET)",
-            "/transactions/{user_id}": "Get user transactions (GET)",
-            "/deposit": "Deposit funds (POST)",
-            "/withdraw": "Withdraw funds (POST)",
-            "/health": "Health check (GET)"
-        },
-        "ally_exchange_rates": {
-            "Cyvathon": "1 CRY = 1 Cybuck",
-            "Aqualithia": "1 CRY = 1 Pufferbuck"
-        }
-    }
-
-# ============= HEALTH CHECK =============
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    try:
-        # Test Supabase connection
-        supabase.table("balances").select("count").limit(1).execute()
-        return {
-            "status": "healthy", 
-            "supabase": "connected",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "unhealthy", 
-            "supabase": "disconnected", 
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-
 # ============= HELPER FUNCTIONS =============
+def hash_password(password: str) -> str:
+    """Hash password using SHA256"""
+    salt = secrets.token_hex(16)
+    return salt + ":" + hashlib.sha256((salt + password).encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify password against hash"""
+    salt, hash_value = hashed.split(":")
+    return hash_value == hashlib.sha256((salt + password).encode()).hexdigest()
+
+def create_access_token(user_id: str, username: str) -> str:
+    """Create JWT token"""
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        "sub": user_id,
+        "username": username,
+        "exp": expire
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str) -> dict:
+    """Verify JWT token"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current user from token"""
+    payload = verify_token(credentials.credentials)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get user from database
+    response = supabase.table("users").select("*").eq("id", user_id).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return response.data[0]
+
 async def get_user_balance(user_id: str) -> float:
     """Get current balance for a user"""
     try:
         response = supabase.table("balances").select("amount").eq("user_id", user_id).execute()
         if response.data and len(response.data) > 0:
             return float(response.data[0]["amount"])
+        # Create balance if it doesn't exist
+        supabase.table("balances").insert({
+            "user_id": user_id,
+            "amount": 0
+        }).execute()
         return 0.0
     except Exception as e:
         print(f"Error getting balance: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get balance")
+        return 0.0
 
 async def update_user_balance(user_id: str, new_amount: float) -> bool:
     """Update user balance"""
     try:
-        # Check if user exists
-        check = supabase.table("balances").select("user_id").eq("user_id", user_id).execute()
-        
-        if not check.data or len(check.data) == 0:
-            # Create new balance record
-            supabase.table("balances").insert({
-                "user_id": user_id,
-                "amount": new_amount
-            }).execute()
-        else:
-            # Update existing balance
-            supabase.table("balances").update({
-                "amount": new_amount,
-                "updated_at": datetime.utcnow().isoformat()
-            }).eq("user_id", user_id).execute()
+        supabase.table("balances").update({
+            "amount": new_amount,
+            "updated_at": datetime.utcnow().isoformat()
+        }).eq("user_id", user_id).execute()
         return True
     except Exception as e:
         print(f"Error updating balance: {e}")
@@ -180,42 +177,131 @@ async def add_transaction(user_id: str, transaction_type: str, amount: float, de
         print(f"Error adding transaction: {e}")
         return None
 
-# ============= API ENDPOINTS =============
-@app.get("/balance/{user_id}", response_model=BalanceResponse)
-async def get_balance(user_id: str):
-    """Get current balance for a user"""
+# ============= AUTH ENDPOINTS =============
+@app.post("/auth/signup", response_model=TokenResponse)
+async def signup(user: UserSignup):
+    """Register a new user"""
     try:
-        response = supabase.table("balances").select("*").eq("user_id", user_id).execute()
+        # Check if user exists
+        existing = supabase.table("users").select("email").eq("email", user.email).execute()
+        if existing.data and len(existing.data) > 0:
+            raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Create user
+        hashed_password = hash_password(user.password)
+        user_data = {
+            "username": user.username,
+            "email": user.email,
+            "password_hash": hashed_password,
+            "full_name": user.full_name,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        response = supabase.table("users").insert(user_data).execute()
         if not response.data or len(response.data) == 0:
-            # Create balance if it doesn't exist
-            supabase.table("balances").insert({
-                "user_id": user_id,
-                "amount": 0
-            }).execute()
-            
-            response = supabase.table("balances").select("*").eq("user_id", user_id).execute()
-            
-            if not response.data or len(response.data) == 0:
-                raise HTTPException(status_code=404, detail="Could not create or find user balance")
+            raise HTTPException(status_code=500, detail="Failed to create user")
         
-        balance_data = response.data[0]
+        new_user = response.data[0]
+        user_id = new_user["id"]
+        
+        # Create initial balance
+        supabase.table("balances").insert({
+            "user_id": user_id,
+            "amount": 1000.00  # Welcome bonus!
+        }).execute()
+        
+        # Create welcome transaction
+        await add_transaction(
+            user_id,
+            "deposit",
+            1000.00,
+            "Welcome bonus! 🎉"
+        )
+        
+        # Generate token
+        token = create_access_token(user_id, user.username)
+        
+        return TokenResponse(
+            access_token=token,
+            token_type="bearer",
+            user_id=user_id,
+            username=user.username
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in signup: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/auth/login", response_model=TokenResponse)
+async def login(user: UserLogin):
+    """Login existing user"""
+    try:
+        # Get user
+        response = supabase.table("users").select("*").eq("email", user.email).execute()
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        db_user = response.data[0]
+        
+        # Verify password
+        if not verify_password(user.password, db_user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Generate token
+        token = create_access_token(db_user["id"], db_user["username"])
+        
+        return TokenResponse(
+            access_token=token,
+            token_type="bearer",
+            user_id=db_user["id"],
+            username=db_user["username"]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in login: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/auth/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """Get current user info"""
+    try:
+        balance = await get_user_balance(current_user["id"])
+        return UserResponse(
+            id=current_user["id"],
+            username=current_user["username"],
+            email=current_user["email"],
+            full_name=current_user.get("full_name"),
+            balance=balance,
+            created_at=datetime.fromisoformat(current_user["created_at"].replace('Z', '+00:00'))
+        )
+    except Exception as e:
+        print(f"Error in get_me: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# ============= BANKING ENDPOINTS =============
+@app.get("/balance", response_model=BalanceResponse)
+async def get_balance(current_user: dict = Depends(get_current_user)):
+    """Get current user's balance"""
+    try:
+        balance = await get_user_balance(current_user["id"])
         return BalanceResponse(
-            user_id=balance_data["user_id"],
-            amount=float(balance_data["amount"]),
-            updated_at=datetime.fromisoformat(balance_data["updated_at"].replace('Z', '+00:00'))
+            user_id=current_user["id"],
+            amount=balance,
+            updated_at=datetime.utcnow()
         )
     except Exception as e:
         print(f"Error in get_balance: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.get("/transactions/{user_id}", response_model=List[TransactionResponse])
-async def get_transactions(user_id: str, limit: int = 20):
-    """Get recent transactions for a user"""
+@app.get("/transactions", response_model=List[TransactionResponse])
+async def get_transactions(limit: int = 20, current_user: dict = Depends(get_current_user)):
+    """Get user's transaction history"""
     try:
         response = supabase.table("transactions") \
             .select("*") \
-            .eq("user_id", user_id) \
+            .eq("user_id", current_user["id"]) \
             .order("created_at", desc=True) \
             .limit(limit) \
             .execute()
@@ -237,22 +323,19 @@ async def get_transactions(user_id: str, limit: int = 20):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/deposit", response_model=BankResponse)
-async def deposit(transaction: TransactionRequest):
+async def deposit(transaction: TransactionRequest, current_user: dict = Depends(get_current_user)):
     """Deposit funds into account"""
     try:
-        # Get current balance
-        current_balance = await get_user_balance(transaction.user_id)
+        current_balance = await get_user_balance(current_user["id"])
         new_balance = current_balance + transaction.amount
         
-        # Update balance
-        success = await update_user_balance(transaction.user_id, new_balance)
+        success = await update_user_balance(current_user["id"], new_balance)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update balance")
         
-        # Add transaction record
         transaction_record = await add_transaction(
-            transaction.user_id, 
-            "deposit", 
+            current_user["id"],
+            "deposit",
             transaction.amount,
             f"Deposit of {transaction.amount:.2f} CRY"
         )
@@ -277,30 +360,26 @@ async def deposit(transaction: TransactionRequest):
         raise HTTPException(status_code=500, detail="Internal server error during deposit")
 
 @app.post("/withdraw", response_model=BankResponse)
-async def withdraw(transaction: TransactionRequest):
+async def withdraw(transaction: TransactionRequest, current_user: dict = Depends(get_current_user)):
     """Withdraw funds from account"""
     try:
-        # Get current balance
-        current_balance = await get_user_balance(transaction.user_id)
+        current_balance = await get_user_balance(current_user["id"])
         
-        # Check sufficient funds
         if current_balance < transaction.amount:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Insufficient funds. Current balance: {current_balance:.2f} CRY"
             )
         
         new_balance = current_balance - transaction.amount
         
-        # Update balance
-        success = await update_user_balance(transaction.user_id, new_balance)
+        success = await update_user_balance(current_user["id"], new_balance)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update balance")
         
-        # Add transaction record
         transaction_record = await add_transaction(
-            transaction.user_id, 
-            "withdraw", 
+            current_user["id"],
+            "withdraw",
             transaction.amount,
             f"Withdrawal of {transaction.amount:.2f} CRY"
         )
@@ -323,6 +402,55 @@ async def withdraw(transaction: TransactionRequest):
     except Exception as e:
         print(f"Error in withdraw: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during withdrawal")
+
+# ============= HEALTH CHECK =============
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        supabase.table("users").select("count").limit(1).execute()
+        return {"status": "healthy", "supabase": "connected", "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        return {"status": "unhealthy", "supabase": "disconnected", "error": str(e)}
+
+# ============= SERVE HTML =============
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Serve the Crystonia Bank frontend"""
+    try:
+        with open("index.html", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        return """
+        <html>
+            <head><title>Crystonia Bank</title></head>
+            <body>
+                <h1>✦ Crystonia Bank</h1>
+                <p>API is running. Please ensure index.html exists.</p>
+                <p><a href="/api">View API Documentation</a></p>
+            </body>
+        </html>
+        """
+
+@app.get("/api")
+async def api_info():
+    """API information"""
+    return {
+        "name": "Crystonia Bank API",
+        "version": "1.0.0",
+        "status": "operational",
+        "endpoints": {
+            "/": "HTML Frontend",
+            "/auth/signup": "Register new user",
+            "/auth/login": "Login user",
+            "/auth/me": "Get current user info",
+            "/balance": "Get user balance",
+            "/transactions": "Get transaction history",
+            "/deposit": "Deposit funds",
+            "/withdraw": "Withdraw funds",
+            "/health": "Health check"
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn
