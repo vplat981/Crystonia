@@ -154,6 +154,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      text-decoration: none;
     }
     .btn-primary {
       background: #1e3b5c;
@@ -249,6 +250,10 @@
     }
     .mt-2 { margin-top: 1rem; }
     .mb-2 { margin-bottom: 1rem; }
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
     @media (max-width: 600px) {
       .header { flex-direction: column; align-items: start; gap: 12px; }
       .btn-group { flex-direction: column; }
@@ -305,33 +310,24 @@
         <span class="text-muted" id="transactionCount">0 transactions</span>
       </div>
       <div id="transactionList">
-        <div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>
+        <div class="text-muted" style="text-align: center; padding: 1rem 0;">Loading transactions...</div>
       </div>
     </div>
   </div>
 
   <!-- footer -->
   <div style="margin-top: 1rem; font-size: 0.75rem; color: #5f7f99; background: #eaf1f9; padding: 0.4rem 1.5rem; border-radius: 60px;">
-    <i class="fas fa-database"></i> Supabase · Python FastAPI · Render ready
+    <i class="fas fa-database"></i> Supabase · Python FastAPI · Render
   </div>
 </div>
 
 <script>
   // ----- Configuration -----
-  // Replace with your Supabase URL and anon key
-  const SUPABASE_URL = 'https://your-project.supabase.co';
-  const SUPABASE_ANON_KEY = 'your-anon-key';
-
-  // For demo, we'll use a fixed user ID (in real app, use auth)
+  // Replace with your Render backend URL when deployed
+  const API_BASE_URL = 'http://localhost:8000'; // Change to your Render URL: https://your-app.onrender.com
+  
+  // Demo user - in production, use authentication
   const USER_ID = 'demo-user-1';
-
-  // ----- API Client (direct fetch to Supabase REST) -----
-  const supabaseHeaders = {
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  };
 
   // ----- State -----
   let currentBalance = 0;
@@ -356,104 +352,101 @@
     }, 5000);
   }
 
+  // ----- Helper: loading state -----
+  function setLoading(isLoading) {
+    if (isLoading) {
+      document.querySelector('.card').classList.add('loading');
+    } else {
+      document.querySelector('.card').classList.remove('loading');
+    }
+  }
+
   // ----- API: fetch balance -----
   async function fetchBalance() {
     try {
-      const url = `${SUPABASE_URL}/rest/v1/balances?user_id=eq.${USER_ID}&select=amount`;
-      const res = await fetch(url, { headers: supabaseHeaders });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        currentBalance = Number(data[0].amount);
-      } else {
-        // create balance if not exists
-        await createBalance();
-        currentBalance = 0;
+      const response = await fetch(`${API_BASE_URL}/balance/${USER_ID}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
+      const data = await response.json();
+      currentBalance = data.amount;
       updateBalanceDisplay();
       return currentBalance;
     } catch (err) {
       console.error('Fetch balance error:', err);
-      showStatus('⚠️ Could not fetch balance. Is Supabase configured?', 'error');
+      showStatus('⚠️ Could not fetch balance. Is the backend running?', 'error');
       return 0;
-    }
-  }
-
-  // ----- API: create balance (if not exists) -----
-  async function createBalance() {
-    try {
-      const url = `${SUPABASE_URL}/rest/v1/balances`;
-      const body = JSON.stringify({ user_id: USER_ID, amount: 0 });
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: body
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return true;
-    } catch (err) {
-      console.error('Create balance error:', err);
-      return false;
-    }
-  }
-
-  // ----- API: update balance -----
-  async function updateBalance(newAmount) {
-    try {
-      const url = `${SUPABASE_URL}/rest/v1/balances?user_id=eq.${USER_ID}`;
-      const body = JSON.stringify({ amount: newAmount });
-      const res = await fetch(url, {
-        method: 'PATCH',
-        headers: supabaseHeaders,
-        body: body
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      currentBalance = newAmount;
-      updateBalanceDisplay();
-      return true;
-    } catch (err) {
-      console.error('Update balance error:', err);
-      showStatus('⚠️ Could not update balance.', 'error');
-      return false;
-    }
-  }
-
-  // ----- API: add transaction -----
-  async function addTransaction(type, amount, description = '') {
-    try {
-      const url = `${SUPABASE_URL}/rest/v1/transactions`;
-      const body = JSON.stringify({
-        user_id: USER_ID,
-        type: type,
-        amount: amount,
-        description: description || `${type} of ${amount} CRY`
-      });
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: body
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return true;
-    } catch (err) {
-      console.error('Add transaction error:', err);
-      return false;
     }
   }
 
   // ----- API: fetch transactions -----
   async function fetchTransactions(limit = 20) {
     try {
-      const url = `${SUPABASE_URL}/rest/v1/transactions?user_id=eq.${USER_ID}&order=created_at.desc&limit=${limit}`;
-      const res = await fetch(url, { headers: supabaseHeaders });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const response = await fetch(`${API_BASE_URL}/transactions/${USER_ID}?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
       transactions = data || [];
       renderTransactions();
       return transactions;
     } catch (err) {
       console.error('Fetch transactions error:', err);
       return [];
+    }
+  }
+
+  // ----- API: deposit -----
+  async function deposit(amount) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/deposit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: USER_ID,
+          amount: amount
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('Deposit error:', err);
+      throw err;
+    }
+  }
+
+  // ----- API: withdraw -----
+  async function withdraw(amount) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/withdraw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: USER_ID,
+          amount: amount
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('Withdraw error:', err);
+      throw err;
     }
   }
 
@@ -474,6 +467,8 @@
       const typeClass = t.type === 'deposit' ? 'deposit' : 'withdraw';
       const icon = t.type === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up';
       const sign = t.type === 'deposit' ? '+' : '-';
+      const date = new Date(t.created_at);
+      const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
       return `
         <div class="transaction-item">
           <span class="transaction-type ${typeClass}">
@@ -486,77 +481,76 @@
     }).join('');
   }
 
-  // ----- Core: deposit -----
+  // ----- Core: handle deposit -----
   async function handleDeposit() {
     const amount = parseFloat(amountInput.value);
     if (!amount || amount <= 0) {
       showStatus('❌ Please enter a valid positive amount.', 'error');
       return;
     }
-    const newBalance = currentBalance + amount;
-    const success = await updateBalance(newBalance);
-    if (success) {
-      await addTransaction('deposit', amount);
+    
+    setLoading(true);
+    try {
+      const result = await deposit(amount);
+      currentBalance = result.balance;
+      updateBalanceDisplay();
       await fetchTransactions();
-      showStatus(`✅ Deposited ${amount.toFixed(2)} CRY. New balance: ${newBalance.toFixed(2)} CRY`, 'success');
+      showStatus(`✅ ${result.message}`, 'success');
+    } catch (err) {
+      showStatus(`❌ ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
     }
   }
 
-  // ----- Core: withdraw -----
+  // ----- Core: handle withdraw -----
   async function handleWithdraw() {
     const amount = parseFloat(amountInput.value);
     if (!amount || amount <= 0) {
       showStatus('❌ Please enter a valid positive amount.', 'error');
       return;
     }
-    if (amount > currentBalance) {
-      showStatus(`❌ Insufficient balance. You have ${currentBalance.toFixed(2)} CRY.`, 'error');
-      return;
-    }
-    const newBalance = currentBalance - amount;
-    const success = await updateBalance(newBalance);
-    if (success) {
-      await addTransaction('withdraw', amount);
+    
+    setLoading(true);
+    try {
+      const result = await withdraw(amount);
+      currentBalance = result.balance;
+      updateBalanceDisplay();
       await fetchTransactions();
-      showStatus(`✅ Withdrew ${amount.toFixed(2)} CRY. New balance: ${newBalance.toFixed(2)} CRY`, 'success');
+      showStatus(`✅ ${result.message}`, 'success');
+    } catch (err) {
+      showStatus(`❌ ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
     }
   }
 
   // ----- Core: refresh -----
   async function handleRefresh() {
-    showStatus('🔄 Refreshing...', 'info');
-    await fetchBalance();
-    await fetchTransactions();
-    showStatus('✅ Refreshed!', 'success');
+    setLoading(true);
+    try {
+      await fetchBalance();
+      await fetchTransactions();
+      showStatus('✅ Refreshed!', 'success');
+    } catch (err) {
+      showStatus('⚠️ Error refreshing data', 'error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   // ----- Initial load -----
   async function init() {
-    // Check if Supabase is configured
-    if (SUPABASE_URL.includes('your-project')) {
-      showStatus('⚠️ Please configure Supabase URL and anon key in the script.', 'error');
-      // But keep demo working with fake data
-      // For demo, we'll show a fake balance
-      currentBalance = 12450;
-      updateBalanceDisplay();
-      // Show demo transactions
-      transactions = [
-        { type: 'deposit', amount: 5000, description: 'Initial minting' },
-        { type: 'deposit', amount: 2450, description: 'Trade with Cyvathon' },
-        { type: 'withdraw', amount: 1000, description: 'Marketplace purchase' },
-      ];
-      renderTransactions();
-      transactionCountEl.textContent = '3 transactions (demo)';
-      return;
-    }
-
+    setLoading(true);
     try {
       await fetchBalance();
       await fetchTransactions();
-      showStatus('✅ Connected to Supabase', 'success');
+      showStatus('✅ Connected to backend', 'success');
     } catch (err) {
       console.error('Init error:', err);
-      showStatus('⚠️ Could not connect to Supabase. Check URL and key.', 'error');
+      showStatus('⚠️ Could not connect to backend. Make sure the server is running.', 'error');
+    } finally {
+      setLoading(false);
     }
   }
 
