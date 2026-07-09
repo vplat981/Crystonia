@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
@@ -54,17 +55,44 @@ class BankResponse(BaseModel):
     balance: Optional[float] = None
     transaction: Optional[TransactionResponse] = None
 
-# ============= ROOT ENDPOINT - FIXES THE "NOT FOUND" ERROR =============
-@app.get("/")
+# ============= ROOT ENDPOINT - SERVES HTML FRONTEND =============
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Welcome page for Crystonia Bank API"""
+    """Serve the Crystonia Bank frontend"""
+    try:
+        with open("index.html", "r") as f:
+            html_content = f.read()
+        return html_content
+    except FileNotFoundError:
+        # Fallback if index.html doesn't exist
+        return """
+        <html>
+            <head><title>Crystonia Bank</title></head>
+            <body>
+                <h1>✦ Crystonia Bank</h1>
+                <p>API is running but index.html not found.</p>
+                <p>Available endpoints:</p>
+                <ul>
+                    <li><a href="/health">/health</a></li>
+                    <li><a href="/balance/demo-user-1">/balance/demo-user-1</a></li>
+                    <li><a href="/transactions/demo-user-1">/transactions/demo-user-1</a></li>
+                </ul>
+            </body>
+        </html>
+        """
+
+# ============= API INFO ENDPOINT =============
+@app.get("/api")
+async def api_info():
+    """API information endpoint"""
     return {
         "name": "Crystonia Bank API",
         "version": "1.0.0",
         "status": "operational",
         "message": "Welcome to the Royal Bank of Crystonia!",
         "endpoints": {
-            "/": "This welcome message",
+            "/": "HTML Frontend",
+            "/api": "This API info",
             "/balance/{user_id}": "Get user balance (GET)",
             "/transactions/{user_id}": "Get user transactions (GET)",
             "/deposit": "Deposit funds (POST)",
