@@ -6,7 +6,6 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 import os
 import hashlib
-import hmac
 import secrets
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -42,7 +41,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ============= MODELS =============
+# ============= MODELS (defined first) =============
 class UserSignup(BaseModel):
     username: str
     email: str
@@ -77,6 +76,11 @@ class TransactionResponse(BaseModel):
     amount: float
     description: Optional[str]
     created_at: datetime
+
+class BalanceResponse(BaseModel):
+    user_id: str
+    amount: float
+    updated_at: datetime
 
 class BankResponse(BaseModel):
     success: bool
@@ -176,6 +180,57 @@ async def add_transaction(user_id: str, transaction_type: str, amount: float, de
     except Exception as e:
         print(f"Error adding transaction: {e}")
         return None
+
+# ============= ROOT ENDPOINT - SERVES HTML =============
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Serve the Crystonia Bank frontend"""
+    try:
+        with open("index.html", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        return """
+        <html>
+            <head><title>Crystonia Bank</title></head>
+            <body>
+                <h1>✦ Crystonia Bank</h1>
+                <p>API is running. Please ensure index.html exists.</p>
+                <p><a href="/api">View API Documentation</a></p>
+            </body>
+        </html>
+        """
+
+# ============= API INFO =============
+@app.get("/api")
+async def api_info():
+    """API information"""
+    return {
+        "name": "Crystonia Bank API",
+        "version": "1.0.0",
+        "status": "operational",
+        "endpoints": {
+            "/": "HTML Frontend",
+            "/api": "This API info",
+            "/auth/signup": "Register new user (POST)",
+            "/auth/login": "Login user (POST)",
+            "/auth/me": "Get current user info (GET)",
+            "/balance": "Get user balance (GET)",
+            "/transactions": "Get transaction history (GET)",
+            "/deposit": "Deposit funds (POST)",
+            "/withdraw": "Withdraw funds (POST)",
+            "/health": "Health check (GET)"
+        }
+    }
+
+# ============= HEALTH CHECK =============
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        supabase.table("users").select("count").limit(1).execute()
+        return {"status": "healthy", "supabase": "connected", "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        return {"status": "unhealthy", "supabase": "disconnected", "error": str(e)}
 
 # ============= AUTH ENDPOINTS =============
 @app.post("/auth/signup", response_model=TokenResponse)
@@ -402,55 +457,6 @@ async def withdraw(transaction: TransactionRequest, current_user: dict = Depends
     except Exception as e:
         print(f"Error in withdraw: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during withdrawal")
-
-# ============= HEALTH CHECK =============
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    try:
-        supabase.table("users").select("count").limit(1).execute()
-        return {"status": "healthy", "supabase": "connected", "timestamp": datetime.utcnow().isoformat()}
-    except Exception as e:
-        return {"status": "unhealthy", "supabase": "disconnected", "error": str(e)}
-
-# ============= SERVE HTML =============
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Serve the Crystonia Bank frontend"""
-    try:
-        with open("index.html", "r") as f:
-            return f.read()
-    except FileNotFoundError:
-        return """
-        <html>
-            <head><title>Crystonia Bank</title></head>
-            <body>
-                <h1>✦ Crystonia Bank</h1>
-                <p>API is running. Please ensure index.html exists.</p>
-                <p><a href="/api">View API Documentation</a></p>
-            </body>
-        </html>
-        """
-
-@app.get("/api")
-async def api_info():
-    """API information"""
-    return {
-        "name": "Crystonia Bank API",
-        "version": "1.0.0",
-        "status": "operational",
-        "endpoints": {
-            "/": "HTML Frontend",
-            "/auth/signup": "Register new user",
-            "/auth/login": "Login user",
-            "/auth/me": "Get current user info",
-            "/balance": "Get user balance",
-            "/transactions": "Get transaction history",
-            "/deposit": "Deposit funds",
-            "/withdraw": "Withdraw funds",
-            "/health": "Health check"
-        }
-    }
 
 if __name__ == "__main__":
     import uvicorn
