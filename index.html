@@ -418,6 +418,653 @@
         setTimeout(() => { element.className = 'status'; }, 5000);
     }
 
+    function setLoading(isLoading, btn, originalText) {
+        if (!originalText) {
+            originalText = btn.innerHTML;
+        }
+        btn.disabled = isLoading;
+        if (isLoading) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        } else {
+            btn.innerHTML = originalText;
+        }
+        return originalText;
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    // ----- API calls -----
+    async function apiRequest(endpoint, method = 'GET', body = null, requiresAuth = true) {
+        const headers = { 'Content-Type': 'application/json' };
+        if (requiresAuth && authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+            return data;
+        } catch (error) {
+            if (error.message.includes('401')) {
+                // Token expired or invalid
+                handleLogout();
+            }
+            throw error;
+        }
+    }
+
+    // ----- Auth functions -----
+    async function handleLogin() {
+        const email = loginEmail.value.trim();
+        const password = loginPassword.value;
+
+        if (!email || !password) {
+            showStatus('Please fill in all fields.', 'error', authStatus);
+            return;
+        }
+
+        const originalText = loginBtn.innerHTML;
+        setLoading(true, loginBtn, originalText);
+        
+        try {
+            const data = await apiRequest('/auth/login', 'POST', { email, password }, false);
+            authToken = data.access_token;
+            localStorage.setItem('authToken', authToken);
+            showStatus('Welcome back! 🎉', 'success', authStatus);
+            // Load dashboard after successful login
+            await loadDashboard();
+        } catch (err) {
+            showStatus(err.message || 'Login failed. Please try again.', 'error', authStatus);
+            setLoading(false, loginBtn, originalText);
+        } finally {
+            setLoading(false, loginBtn, originalText);
+        }
+    }
+
+    async function handleSignup() {
+        const username = signupUsername.value.trim();
+        const email = signupEmail.value.trim();
+        const fullName = signupFullName.value.trim();
+        const password = signupPassword.value;
+
+        if (!username || !email || !password) {
+            showStatus('Please fill in all required fields.', 'error', authStatus);
+            return;
+        }
+
+        const originalText = signupBtn.innerHTML;
+        setLoading(true, signupBtn, originalText);
+        
+        try {
+            const data = await apiRequest('/auth/signup', 'POST', { 
+                username, 
+                email, 
+                password, 
+                full_name: fullName 
+            }, false);
+            
+            authToken = data.access_token;
+            localStorage.setItem('authToken', authToken);
+            showStatus('Account created! Welcome to Crystonia! 🎉', 'success', authStatus);
+            // Load dashboard after successful signup
+            await loadDashboard();
+        } catch (err) {
+            showStatus(err.message || 'Signup failed. Please try again.', 'error', authStatus);
+            setLoading(false, signupBtn, originalText);
+        } finally {
+            setLoading(false, signupBtn, originalText);
+        }
+    }
+
+    async function handleLogout() {
+        authToken = null;
+        localStorage.removeItem('authToken');
+        currentUser = null;
+        dashboard.classList.add('hidden');
+        authForm.classList.remove('hidden');
+        // Reset login form
+        loginEmail.value = '';
+        loginPassword.value = '';
+        // Reset signup form
+        signupUsername.value = '';
+        signupEmail.value = '';
+        signupPassword.value = '';
+        signupFullName.value = '';
+        showStatus('Logged out successfully.', 'info', authStatus);
+        // Clear any status messages in dashboard
+        dashboardStatus.className = 'status';
+    }
+
+    // ----- Dashboard functions -----
+    async function loadDashboard() {
+        try {
+            // Get user info
+            const userData = await apiRequest('/auth/me', 'GET');
+            currentUser = userData;
+            
+            // Update UI
+            userAvatar.textContent = userData.username.charAt(0).toUpperCase();
+            userDisplayName.textContent = userData.full_name || userData.username;
+            userEmail.textContent = userData.email;
+            
+            // Show dashboard, hide auth
+            authForm.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            
+            // Load data
+            await refreshData();
+            
+            // Clear any status from auth
+            authStatus.className = 'status';
+        } catch (err) {
+            console.error('Load dashboard error:', err);
+            showStatus('Failed to load dashboard: ' + err.message, 'error', dashboardStatus);
+            if (err.message.includes('401')) {
+                handleLogout();
+            }
+        }
+    }
+
+    async function refreshData() {
+        try {
+            const balance = await apiRequest('/balance', 'GET');
+            balanceDisplay.innerHTML = `${balance.amount.toFixed(2)} <small>CRY</small>`;
+            
+            const transactions = await apiRequest('/transactions?limit=20', 'GET');
+            renderTransactions(transactions);
+            showStatus('Refreshed! ✅', 'success', dashboardStatus);
+        } catch (err) {
+            console.error('Refresh error:', err);
+            showStatus('Failed to refresh: ' + err.message, 'error', dashboardStatus);
+        }
+    }
+
+    function renderTransactions(transactions) {
+        if (!transactions || transactions.length === 0) {
+            transactionListEl.innerHTML = '<div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>';
+            transactionCountEl.textContent = '0 transactions';
+            return;
+        }
+        transactionCountEl.textContent = `${transactions.length} transactions`;
+        transactionListEl.innerHTML = transactions.map(t => {
+            const typeClass = t.type === 'deposit' ? 'deposit' : 'withdraw';
+            const icon = t.type === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up';
+            const sign = t.type === 'deposit' ? '+' : '-';
+            return `
+                <div class="transaction-item">
+                    <span class="transaction-type ${typeClass}">
+                        <i class="fas ${icon}"></i> ${t.type.charAt(0).toUpperCase() + t.type.slice(1)}
+                    </span>
+                    <span>${t.description || ''}</span>
+                    <span class="transaction-amount">${sign}${Number(t.amount).toFixed(2)} CRY</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function handleDeposit() {
+        const amount = parseFloat(amountInput.value);
+        if (!amount || amount <= 0) {
+            showStatus('Please enter a valid positive amount.', 'error', dashboardStatus);
+            return;
+        }
+
+        const originalText = depositBtn.innerHTML;
+        setLoading(true, depositBtn, originalText);
+        try {
+            const result = await apiRequest('/deposit', 'POST', { amount });
+            balanceDisplay.innerHTML = `${result.balance.toFixed(2)} <small>CRY</small>`;
+            await refreshData();
+            showStatus(`✅ ${result.message}`, 'success', dashboardStatus);
+        } catch (err) {
+            showStatus('❌ ' + err.message, 'error', dashboardStatus);
+        } finally {
+            setLoading(false, depositBtn, originalText);
+        }
+    }
+
+    async function handleWithdraw() {
+        const amount = parseFloat(amountInput.value);
+        if (!amount || amount <= 0) {
+            showStatus('Please enter a valid positive amount.', 'error', dashboardStatus);
+            return;
+        }
+
+        const originalText = withdrawBtn.innerHTML;
+        setLoading(true, withdrawBtn, originalText);
+        try {
+            const result = await apiRequest('/withdraw', 'POST', { amount });
+            balanceDisplay.innerHTML = `${result.balance.toFixed(2)} <small>CRY</small>`;
+            await refreshData();
+            showStatus(`✅ ${result.message}`, 'success', dashboardStatus);
+        } catch (err) {
+            showStatus('❌ ' + err.message, 'error', dashboardStatus);
+        } finally {
+            setLoading(false, withdrawBtn, originalText);
+        }
+    }
+
+    // ----- Event listeners -----
+    loginBtn.addEventListener('click', handleLogin);
+    signupBtn.addEventListener('click', handleSignup);
+    
+    showSignup.addEventListener('click', () => {
+        loginForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
+        authStatus.className = 'status';
+    });
+    
+    showLogin.addEventListener('click', () => {
+        signupForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        authStatus.className = 'status';
+    });
+    
+    depositBtn.addEventListener('click', handleDeposit);
+    withdrawBtn.addEventListener('click', handleWithdraw);
+    refreshBtn.addEventListener('click', refreshData);
+    logoutBtn.addEventListener('click', handleLogout);
+
+    // Enter key support
+    loginPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+    signupPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') signupBtn.click(); });
+    amountInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') depositBtn.click(); });
+
+    // ----- Init -----
+    async function init() {
+        // Check for stored token and try to auto-login
+        if (authToken) {
+            try {
+                await loadDashboard();
+                return;
+            } catch (error) {
+                // Token is invalid, clear it
+                console.error('Auto-login failed:', error);
+                localStorage.removeItem('authToken');
+                authToken = null;
+            }
+        }
+        // Show auth form if not logged in
+        authForm.classList.remove('hidden');
+        dashboard.classList.add('hidden');
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        if (authToken && !dashboard.classList.contains('hidden')) {
+            refreshData();
+        }
+    }, 30000);
+
+    // Start the app
+    init();
+</script>
+</body>
+</html>            border-radius: 12px;
+            font-size: 1rem;
+            background: #fafcfe;
+            transition: 0.15s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #1e3b5c;
+            box-shadow: 0 0 0 3px rgba(30, 59, 92, 0.1);
+        }
+        .btn {
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.15s;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #1e3b5c;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #143049;
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: #2a7a5e;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #1e624a;
+        }
+        .btn-danger {
+            background: #b13e4b;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #932e3a;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #bccddb;
+            color: #1a314a;
+        }
+        .btn-outline:hover {
+            background: #f0f4fa;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #4e6f8a;
+        }
+        .auth-toggle a {
+            color: #1e3b5c;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .auth-toggle a:hover {
+            color: #143049;
+        }
+        .status {
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .status.success {
+            display: block;
+            background: #e4f4ec;
+            color: #1a5a44;
+            border: 1px solid #b8d9cb;
+        }
+        .status.error {
+            display: block;
+            background: #fce8ea;
+            color: #8a2e3a;
+            border: 1px solid #f5cfd3;
+        }
+        .status.info {
+            display: block;
+            background: #e4edf6;
+            color: #1a3a57;
+            border: 1px solid #c5d8e8;
+        }
+        .hidden { display: none; }
+        .balance-display {
+            background: #f2f7fc;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .balance-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0b1a2b;
+        }
+        .balance-amount small {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #4a6a86;
+            margin-left: 8px;
+        }
+        .exchange-row {
+            display: flex;
+            justify-content: space-between;
+            background: #f8faff;
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .btn-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        .transaction-list {
+            margin-top: 1.5rem;
+            border-top: 1px solid #e9eef3;
+            padding-top: 1.5rem;
+        }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #f0f4fa;
+            font-size: 0.9rem;
+        }
+        .transaction-item:last-child {
+            border-bottom: 0;
+        }
+        .transaction-type.deposit { color: #2a7a5e; }
+        .transaction-type.withdraw { color: #b13e4b; }
+        .transaction-amount { font-weight: 600; }
+        .text-muted { color: #4e6f8a; font-size: 0.85rem; }
+        .flex { display: flex; align-items: center; gap: 8px; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e9eef3;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-info .avatar {
+            background: #1e3b5c;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #b13e4b;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .logout-btn:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        @media (max-width: 600px) {
+            .card { padding: 1.5rem; }
+            .btn-group { flex-direction: column; }
+            .btn-group .btn { width: 100%; }
+            .balance-amount { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+
+    <!-- LOGIN / SIGNUP FORM -->
+    <div id="authForm" class="card">
+        <h1>✦ Crystonia</h1>
+        <p class="subtitle"><i class="fas fa-university"></i> Royal Bank</p>
+        
+        <div id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" placeholder="your@email.com" />
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password" />
+            </div>
+            <button class="btn btn-primary" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <div class="auth-toggle">
+                Don't have an account? <a id="showSignup">Sign up</a>
+            </div>
+        </div>
+
+        <div id="signupForm" class="hidden">
+            <div class="form-group">
+                <label for="signupUsername">Username</label>
+                <input type="text" id="signupUsername" placeholder="Choose a username" />
+            </div>
+            <div class="form-group">
+                <label for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" placeholder="your@email.com" />
+            </div>
+            <div class="form-group">
+                <label for="signupFullName">Full Name (optional)</label>
+                <input type="text" id="signupFullName" placeholder="Your full name" />
+            </div>
+            <div class="form-group">
+                <label for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" placeholder="Create a password" />
+            </div>
+            <button class="btn btn-success" id="signupBtn"><i class="fas fa-user-plus"></i> Create Account</button>
+            <div class="auth-toggle">
+                Already have an account? <a id="showLogin">Login</a>
+            </div>
+        </div>
+
+        <div id="authStatus" class="status"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="card hidden">
+        <div class="user-header">
+            <div class="user-info">
+                <div class="avatar" id="userAvatar">U</div>
+                <div>
+                    <strong id="userDisplayName">User</strong>
+                    <div class="text-muted" id="userEmail">user@email.com</div>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+
+        <div class="balance-display">
+            <span class="text-muted">Your balance</span>
+            <span class="balance-amount" id="balanceDisplay">0 <small>CRY</small></span>
+        </div>
+
+        <div class="exchange-row">
+            <span><i class="fas fa-exchange-alt"></i> 1 CRY = 1 Cybuck (Cyvathon)</span>
+            <span><i class="fas fa-exchange-alt"></i> 1 CRY = 1 Pufferbuck (Aqualithia)</span>
+            <span><i class="fas fa-handshake"></i> Ally: Cyvathon</span>
+        </div>
+
+        <div class="form-group">
+            <label for="amountInput">Amount (CRY)</label>
+            <input type="number" id="amountInput" placeholder="Enter amount..." min="0.01" step="0.01" value="10" />
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-success" id="depositBtn"><i class="fas fa-arrow-down"></i> Deposit</button>
+            <button class="btn btn-danger" id="withdrawBtn"><i class="fas fa-arrow-up"></i> Withdraw</button>
+            <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <div id="dashboardStatus" class="status"></div>
+
+        <div class="transaction-list">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <span style="font-weight: 600;"><i class="fas fa-history"></i> Recent transactions</span>
+                <span class="text-muted" id="transactionCount">0 transactions</span>
+            </div>
+            <div id="transactionList">
+                <div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 1rem; font-size: 0.75rem; color: #5f7f99; background: #eaf1f9; padding: 0.4rem 1.5rem; border-radius: 60px; text-align: center;">
+        <i class="fas fa-database"></i> Supabase · Python FastAPI · Render
+    </div>
+</div>
+
+<script>
+    // ----- Configuration -----
+    const API_BASE_URL = 'https://crystonia.onrender.com';
+    let authToken = localStorage.getItem('authToken');
+    let currentUser = null;
+
+    // ----- DOM refs -----
+    const authForm = document.getElementById('authForm');
+    const dashboard = document.getElementById('dashboard');
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const authStatus = document.getElementById('authStatus');
+    const dashboardStatus = document.getElementById('dashboardStatus');
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const amountInput = document.getElementById('amountInput');
+    const transactionListEl = document.getElementById('transactionList');
+    const transactionCountEl = document.getElementById('transactionCount');
+
+    // Auth elements
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupUsername = document.getElementById('signupUsername');
+    const signupEmail = document.getElementById('signupEmail');
+    const signupFullName = document.getElementById('signupFullName');
+    const signupPassword = document.getElementById('signupPassword');
+    const signupBtn = document.getElementById('signupBtn');
+    const showSignup = document.getElementById('showSignup');
+    const showLogin = document.getElementById('showLogin');
+
+    // Dashboard elements
+    const userAvatar = document.getElementById('userAvatar');
+    const userDisplayName = document.getElementById('userDisplayName');
+    const userEmail = document.getElementById('userEmail');
+    const depositBtn = document.getElementById('depositBtn');
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // ----- Helper functions -----
+    function showStatus(message, type, element) {
+        element.textContent = message;
+        element.className = `status ${type}`;
+        setTimeout(() => { element.className = 'status'; }, 5000);
+    }
+
     function setLoading(isLoading, btn) {
         btn.disabled = isLoading;
         btn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin"></i> Loading...' : btn.innerHTML;
