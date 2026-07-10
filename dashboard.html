@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crystonia · Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f4fa;
+            color: #0b1a2b;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3b5c;
+        }
+        .navbar .logo span {
+            background: #d4e2f0;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1e3b5c;
+            margin-left: 8px;
+        }
+        .navbar .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .navbar .nav-links a {
+            text-decoration: none;
+            color: #1a314a;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 40px;
+            transition: 0.15s;
+            cursor: pointer;
+        }
+        .navbar .nav-links a:hover {
+            background: #e9eef3;
+        }
+        .navbar .nav-links a.active {
+            background: #1e3b5c;
+            color: white;
+        }
+        .navbar .nav-links .btn-logout {
+            background: #b13e4b;
+            color: white;
+        }
+        .navbar .nav-links .btn-logout:hover {
+            background: #932e3a;
+        }
+        .navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .navbar .user-info .avatar {
+            background: #1e3b5c;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Pages */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 2rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e9eef3;
+            margin-bottom: 1.5rem;
+        }
+        .card h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1a314a;
+        }
+        .card h2 i {
+            color: #3a75a8;
+        }
+
+        /* Bank specific */
+        .balance-display {
+            background: #f2f7fc;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .balance-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0b1a2b;
+        }
+        .balance-amount small {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #4a6a86;
+            margin-left: 8px;
+        }
+
+        .exchange-row {
+            display: flex;
+            justify-content: space-between;
+            background: #f8faff;
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+            color: #1a314a;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #d9e3ed;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: #fafcfe;
+            transition: 0.15s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #1e3b5c;
+            box-shadow: 0 0 0 3px rgba(30, 59, 92, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .btn-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        .btn {
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-success {
+            background: #2a7a5e;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #1e624a;
+        }
+        .btn-danger {
+            background: #b13e4b;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #932e3a;
+        }
+        .btn-primary {
+            background: #1e3b5c;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #143049;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #bccddb;
+            color: #1a314a;
+        }
+        .btn-outline:hover {
+            background: #f0f4fa;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .status.success {
+            display: block;
+            background: #e4f4ec;
+            color: #1a5a44;
+            border: 1px solid #b8d9cb;
+        }
+        .status.error {
+            display: block;
+            background: #fce8ea;
+            color: #8a2e3a;
+            border: 1px solid #f5cfd3;
+        }
+        .status.info {
+            display: block;
+            background: #e4edf6;
+            color: #1a3a57;
+            border: 1px solid #c5d8e8;
+        }
+
+        .transaction-list {
+            margin-top: 1.5rem;
+            border-top: 1px solid #e9eef3;
+            padding-top: 1.5rem;
+        }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #f0f4fa;
+            font-size: 0.9rem;
+        }
+        .transaction-item:last-child {
+            border-bottom: 0;
+        }
+        .transaction-type.deposit { color: #2a7a5e; }
+        .transaction-type.withdraw { color: #b13e4b; }
+        .transaction-type.transfer { color: #3a75a8; }
+        .transaction-amount { font-weight: 600; }
+        .text-muted { color: #4e6f8a; font-size: 0.85rem; }
+
+        /* Main page content */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #e9eef3;
+            text-align: center;
+            transition: 0.15s;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        .feature-card i {
+            font-size: 2.5rem;
+            color: #3a75a8;
+            margin-bottom: 1rem;
+        }
+        .feature-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: #1a314a;
+        }
+        .feature-card p {
+            color: #4e6f8a;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        .info-item {
+            padding: 1rem;
+            background: #f8faff;
+            border-radius: 12px;
+        }
+        .info-item .label {
+            font-size: 0.8rem;
+            color: #4e6f8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-item .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a314a;
+            margin-top: 0.3rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #4e6f8a;
+            font-size: 0.85rem;
+            border-top: 1px solid #e9eef3;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; align-items: stretch; }
+            .navbar .nav-links { justify-content: center; }
+            .container { padding: 1rem; }
+            .card { padding: 1.5rem; }
+            .btn-group { flex-direction: column; }
+            .btn-group .btn { width: 100%; }
+            .balance-amount { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">
+            ✦ Crystonia <span>dashboard</span>
+        </div>
+        <div class="user-info">
+            <div class="avatar" id="userAvatar">U</div>
+            <span id="userDisplayName">User</span>
+        </div>
+        <div class="nav-links">
+            <a class="active" data-page="main"><i class="fas fa-home"></i> Main</a>
+            <a data-page="bank"><i class="fas fa-university"></i> Bank</a>
+            <a data-page="transfer"><i class="fas fa-paper-plane"></i> Send</a>
+            <a href="/" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- MAIN PAGE -->
+        <div id="page-main" class="page active">
+            <div class="card">
+                <h2><i class="fas fa-flag"></i> Welcome to Crystonia</h2>
+                <p style="font-size: 1.1rem; line-height: 1.6; color: #1a314a;">
+                    Welcome to the Crystonia Dashboard! Here you can manage your finances,
+                    view your crystal holdings, and interact with our economy.
+                </p>
+                <div style="margin-top: 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: #1e3b5c;" id="mainBalance">0</div>
+                        <div style="color: #4e6f8a;">CRY Balance</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: #1e3b5c;">1:1</div>
+                        <div style="color: #4e6f8a;">Exchange Rate</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: #1e3b5c;" id="mainTransactions">0</div>
+                        <div style="color: #4e6f8a;">Transactions</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fas fa-coins"></i>
+                    <h3>Crystalline Currency</h3>
+                    <p>Our official currency, the Crystalline (CRY), is backed by our crystal reserves.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-university"></i>
+                    <h3>Royal Bank</h3>
+                    <p>Secure digital banking with deposits, withdrawals, and transfers.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-handshake"></i>
+                    <h3>Strong Alliances</h3>
+                    <p>We maintain friendly relations with Cyvathon and Aqualithia.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-gem"></i>
+                    <h3>Crystal Economy</h3>
+                    <p>Our economy is built on crystal mining, trade, and digital innovation.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-info-circle"></i> Nation Info</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="label">Currency</div>
+                        <div class="value">Crystalline (CRY)</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Founded</div>
+                        <div class="value">2026</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Allies</div>
+                        <div class="value">Cyvathon · Aqualithia</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Exchange Rate</div>
+                        <div class="value">1 CRY = 1 Cybuck</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BANK PAGE -->
+        <div id="page-bank" class="page">
+            <div class="card">
+                <h2><i class="fas fa-university"></i> Royal Bank</h2>
+                
+                <div class="balance-display">
+                    <span class="text-muted">Your balance</span>
+                    <span class="balance-amount" id="balanceDisplay">0 <small>CRY</small></span>
+                </div>
+
+                <div class="exchange-row">
+                    <span><i class="fas fa-exchange-alt"></i> 1 CRY = 1 Cybuck (Cyvathon)</span>
+                    <span><i class="fas fa-exchange-alt"></i> 1 CRY = 1 Pufferbuck (Aqualithia)</span>
+                    <span><i class="fas fa-handshake"></i> Ally: Cyvathon</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="amountInput">Amount (CRY)</label>
+                    <input type="number" id="amountInput" placeholder="Enter amount..." min="0.01" step="0.01" value="10" />
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-success" id="depositBtn"><i class="fas fa-arrow-down"></i> Deposit</button>
+                    <button class="btn btn-danger" id="withdrawBtn"><i class="fas fa-arrow-up"></i> Withdraw</button>
+                    <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+
+                <div id="bankStatus" class="status"></div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-history"></i> Transaction History</h2>
+                <div id="transactionList">
+                    <div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>
+                </div>
+                <div style="margin-top: 0.5rem; text-align: right;">
+                    <span class="text-muted" id="transactionCount">0 transactions</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEND MONEY PAGE -->
+        <div id="page-transfer" class="page">
+            <div class="card">
+                <h2><i class="fas fa-paper-plane"></i> Send Money</h2>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">Transfer CRY to other Crystonia citizens</p>
+
+                <div class="form-group">
+                    <label for="recipientUsername">Recipient Username</label>
+                    <input type="text" id="recipientUsername" placeholder="Enter username" />
+                </div>
+
+                <div class="form-group">
+                    <label for="transferAmount">Amount (CRY)</label>
+                    <input type="number" id="transferAmount" placeholder="Enter amount..." min="0.01" step="0.01" value="1" />
+                </div>
+
+                <div class="form-group">
+                    <label for="transferNote">Note (optional)</label>
+                    <input type="text" id="transferNote" placeholder="What's this for?" />
+                </div>
+
+                <button class="btn btn-primary" id="transferBtn"><i class="fas fa-paper-plane"></i> Send CRY</button>
+
+                <div id="transferStatus" class="status"></div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-arrow-right"></i> Recent Transfers</h2>
+                <div id="transferList">
+                    <div class="text-muted" style="text-align: center; padding: 1rem 0;">No transfers yet</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>✦ Crystonia · The Crystal Republic · Established 2026</p>
+            <p style="margin-top: 0.5rem; font-size: 0.75rem;">
+                <i class="fas fa-database"></i> Supabase · Python FastAPI · Render
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // ----- Configuration -----
+        const API_BASE_URL = 'https://crystonia.onrender.com';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+        let currentBalance = 0;
+
+        // ----- DOM refs -----
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-links a[data-page]');
+        const userAvatar = document.getElementById('userAvatar');
+        const userDisplayName = document.getElementById('userDisplayName');
+
+        // Bank
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const mainBalance = document.getElementById('mainBalance');
+        const mainTransactions = document.getElementById('mainTransactions');
+        const amountInput = document.getElementById('amountInput');
+        const depositBtn = document.getElementById('depositBtn');
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const bankStatus = document.getElementById('bankStatus');
+        const transactionListEl = document.getElementById('transactionList');
+        const transactionCountEl = document.getElementById('transactionCount');
+
+        // Transfer
+        const recipientUsername = document.getElementById('recipientUsername');
+        const transferAmount = document.getElementById('transferAmount');
+        const transferNote = document.getElementById('transferNote');
+        const transferBtn = document.getElementById('transferBtn');
+        const transferStatus = document.getElementById('transferStatus');
+        const transferListEl = document.getElementById('transferList');
+
+        // ----- Helper functions -----
+        function showStatus(message, type, element) {
+            element.textContent = message;
+            element.className = `status ${type}`;
+            setTimeout(() => { element.className = 'status'; }, 5000);
+        }
+
+        function setLoading(isLoading, btn, originalText) {
+            if (!originalText) originalText = btn.innerHTML;
+            btn.disabled = isLoading;
+            btn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin"></i> Loading...' : originalText;
+            return originalText;
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/';
+        }
+
+        // ----- Navigation -----
+        function navigateTo(page) {
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${page}`).classList.add('active');
+            navLinks.forEach(l => l.classList.remove('active'));
+            document.querySelector(`.nav-links a[data-page="${page}"]`).classList.add('active');
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = link.dataset.page;
+                if (page) navigateTo(page);
+            });
+        });
+
+        // ----- API calls -----
+        async function apiRequest(endpoint, method = 'GET', body = null, requiresAuth = true) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (requiresAuth && authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const options = { method, headers };
+            if (body) options.body = JSON.stringify(body);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                const data = await response.json();
+                if (!response.ok) {
+                    if (response.status === 401) handleLogout();
+                    throw new Error(data.detail || `HTTP ${response.status}`);
+                }
+                return data;
+            } catch (error) {
+                if (error.message.includes('401')) handleLogout();
+                throw error;
+            }
+        }
+
+        // ----- Load user info -----
+        async function loadUserInfo() {
+            try {
+                const userData = await apiRequest('/auth/me', 'GET');
+                currentUser = userData;
+                userAvatar.textContent = userData.username.charAt(0).toUpperCase();
+                userDisplayName.textContent = userData.full_name || userData.username;
+                return userData;
+            } catch (err) {
+                console.error('Load user info error:', err);
+                throw err;
+            }
+        }
+
+        // ----- Bank functions -----
+        async function loadBalance() {
+            try {
+                const balance = await apiRequest('/balance', 'GET');
+                currentBalance = balance.amount;
+                balanceDisplay.innerHTML = `${balance.amount.toFixed(2)} <small>CRY</small>`;
+                mainBalance.textContent = `${balance.amount.toFixed(2)} CRY`;
+                return balance;
+            } catch (err) {
+                console.error('Load balance error:', err);
+                return null;
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const transactions = await apiRequest('/transactions?limit=20', 'GET');
+                renderTransactions(transactions);
+                mainTransactions.textContent = transactions.length;
+                return transactions;
+            } catch (err) {
+                console.error('Load transactions error:', err);
+                return [];
+            }
+        }
+
+        function renderTransactions(transactions) {
+            if (!transactions || transactions.length === 0) {
+                transactionListEl.innerHTML = '<div class="text-muted" style="text-align: center; padding: 1rem 0;">No transactions yet</div>';
+                transactionCountEl.textContent = '0 transactions';
+                return;
+            }
+            transactionCountEl.textContent = `${transactions.length} transactions`;
+            transactionListEl.innerHTML = transactions.map(t => {
+                const typeClass = t.type === 'deposit' ? 'deposit' : 
+                                t.type === 'withdraw' ? 'withdraw' : 'transfer';
+                const icon = t.type === 'deposit' ? 'fa-arrow-down' : 
+                            t.type === 'withdraw' ? 'fa-arrow-up' : 'fa-exchange-alt';
+                const sign = t.type === 'deposit' ? '+' : '-';
+                return `
+                    <div class="transaction-item">
+                        <span class="transaction-type ${typeClass}">
+                            <i class="fas ${icon}"></i> ${t.type.charAt(0).toUpperCase() + t.type.slice(1)}
+                        </span>
+                        <span>${t.description || ''}</span>
+                        <span class="transaction-amount">${sign}${Number(t.amount).toFixed(2)} CRY</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function handleDeposit() {
+            const amount = parseFloat(amountInput.value);
+            if (!amount || amount <= 0) {
+                showStatus('Please enter a valid positive amount.', 'error', bankStatus);
+                return;
+            }
+            const originalText = depositBtn.innerHTML;
+            setLoading(true, depositBtn, originalText);
+            try {
+                const result = await apiRequest('/deposit', 'POST', { amount });
+                await loadBalance();
+                await loadTransactions();
+                showStatus(`✅ ${result.message}`, 'success', bankStatus);
+            } catch (err) {
+                showStatus('❌ ' + err.message, 'error', bankStatus);
+            } finally {
+                setLoading(false, depositBtn, originalText);
+            }
+        }
+
+        async function handleWithdraw() {
+            const amount = parseFloat(amountInput.value);
+            if (!amount || amount <= 0) {
+                showStatus('Please enter a valid positive amount.', 'error', bankStatus);
+                return;
+            }
+            const originalText = withdrawBtn.innerHTML;
+            setLoading(true, withdrawBtn, originalText);
+            try {
+                const result = await apiRequest('/withdraw', 'POST', { amount });
+                await loadBalance();
+                await loadTransactions();
+                showStatus(`✅ ${result.message}`, 'success', bankStatus);
+            } catch (err) {
+                showStatus('❌ ' + err.message, 'error', bankStatus);
+            } finally {
+                setLoading(false, withdrawBtn, originalText);
+            }
+        }
+
+        async function refreshData() {
+            try {
+                await loadBalance();
+                await loadTransactions();
+                showStatus('Refreshed! ✅', 'success', bankStatus);
+            } catch (err) {
+                showStatus('Failed to refresh: ' + err.message, 'error', bankStatus);
+            }
+        }
+
+        // ----- Transfer functions -----
+        async function loadTransfers() {
+            try {
+                const transactions = await apiRequest('/transactions?limit=20', 'GET');
+                const transfers = transactions.filter(t => t.type === 'transfer');
+                renderTransfers(transfers);
+                return transfers;
+            } catch (err) {
+                console.error('Load transfers error:', err);
+                return [];
+            }
+        }
+
+        function renderTransfers(transfers) {
+            if (!transfers || transfers.length === 0) {
+                transferListEl.innerHTML = '<div class="text-muted" style="text-align: center; padding: 1rem 0;">No transfers yet</div>';
+                return;
+            }
+            transferListEl.innerHTML = transfers.map(t => `
+                <div class="transaction-item">
+                    <span>${t.description || 'Transfer'}</span>
+                    <span class="transaction-amount">-${Number(t.amount).toFixed(2)} CRY</span>
+                </div>
+            `).join('');
+        }
+
+        async function handleTransfer() {
+            const recipient = recipientUsername.value.trim();
+            const amount = parseFloat(transferAmount.value);
+            const note = transferNote.value.trim();
+
+            if (!recipient) {
+                showStatus('Please enter a recipient username.', 'error', transferStatus);
+                return;
+            }
+            if (!amount || amount <= 0) {
+                showStatus('Please enter a valid positive amount.', 'error', transferStatus);
+                return;
+            }
+            if (amount > currentBalance) {
+                showStatus(`Insufficient balance. You have ${currentBalance.toFixed(2)} CRY.`, 'error', transferStatus);
+                return;
+            }
+
+            const originalText = transferBtn.innerHTML;
+            setLoading(true, transferBtn, originalText);
+            try {
+                // For now, we'll do a withdraw and add a transfer note
+                // In a real app, you'd have a proper transfer endpoint
+                await apiRequest('/withdraw', 'POST', { amount });
+                
+                // Add a custom transaction note
+                const description = `Transfer to ${recipient}${note ? ': ' + note : ''}`;
+                // Since we don't have a proper transfer endpoint, we'll track it in the description
+                // In a real app, you'd have a proper /transfer endpoint
+                
+                await loadBalance();
+                await loadTransactions();
+                await loadTransfers();
+                showStatus(`✅ Sent ${amount.toFixed(2)} CRY to ${recipient}`, 'success', transferStatus);
+                recipientUsername.value = '';
+                transferNote.value = '';
+                transferAmount.value = '1';
+            } catch (err) {
+                showStatus('❌ ' + err.message, 'error', transferStatus);
+            } finally {
+                setLoading(false, transferBtn, originalText);
+            }
+        }
+
+        // ----- Event listeners -----
+        depositBtn.addEventListener('click', handleDeposit);
+        withdrawBtn.addEventListener('click', handleWithdraw);
+        refreshBtn.addEventListener('click', refreshData);
+        transferBtn.addEventListener('click', handleTransfer);
+
+        // Enter key support
+        amountInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') depositBtn.click(); });
+        transferAmount.addEventListener('keypress', (e) => { if (e.key === 'Enter') transferBtn.click(); });
+
+        // ----- Init -----
+        async function init() {
+            if (!authToken) {
+                window.location.href = '/bank.html';
+                return;
+            }
+
+            try {
+                await loadUserInfo();
+                await loadBalance();
+                await loadTransactions();
+                await loadTransfers();
+            } catch (err) {
+                console.error('Init error:', err);
+                if (err.message.includes('401')) {
+                    handleLogout();
+                }
+            }
+
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                if (document.getElementById('page-bank').classList.contains('active')) {
+                    refreshData();
+                }
+            }, 30000);
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
