@@ -44,7 +44,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 supabase_service: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else None
 
-# ============= MODELS (defined first) =============
+# ============= MODELS =============
 class UserSignup(BaseModel):
     username: str
     email: str
@@ -70,6 +70,7 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 class TransactionRequest(BaseModel):
+    user_id: Optional[str] = None  # For transfer recipient
     amount: float = Field(gt=0, description="Amount must be greater than 0")
 
 class TransactionResponse(BaseModel):
@@ -167,7 +168,7 @@ async def update_user_balance(user_id: str, new_amount: float) -> bool:
     """Update user balance"""
     try:
         # Try with anon key first
-        result = supabase.table("balances").update({
+        supabase.table("balances").update({
             "amount": new_amount,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("user_id", user_id).execute()
@@ -256,6 +257,7 @@ async def api_info():
             "/transactions": "Get transaction history (GET)",
             "/deposit": "Deposit funds (POST)",
             "/withdraw": "Withdraw funds (POST)",
+            "/transfer": "Transfer funds to another user (POST)",
             "/health": "Health check (GET)"
         }
     }
@@ -520,6 +522,81 @@ async def withdraw(transaction: TransactionRequest, current_user: dict = Depends
     except Exception as e:
         print(f"Error in withdraw: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during withdrawal")
+
+# ============= TRANSFER ENDPOINT =============
+@app.post("/transfer", response_model=BankResponse)
+async def transfer(transaction: TransactionRequest, current_user: dict = Depends(get_current_user)):
+    """Transfer funds to another user"""
+    try:
+        # Check if recipient exists and get their info
+        recipient = supabase.table("users").select("id, username").eq("username", transaction.user_id).execute()
+        if not recipient.data or len(recipient.data) == 0:
+            raise HTTPException(status_code=404, detail="Recipient not found")
+        
+        recipient_id = recipient.data[0]["id"]
+        recipient_username = recipient.data[0]["username"]
+        
+        # Don't allow self-transfer
+        if recipient_id == current_user["id"]:
+            raise HTTPException(status_code=400, detail="Cannot transfer to yourself")
+        
+        # Get sender balance
+        sender_balance = await get_user_balance(current_user["id"])
+        if sender_balance < transaction.amount:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient funds. Current balance: {sender_balance:.2f} CRY"
+            )
+        
+        # Deduct from sender
+        new_sender_balance = sender_balance - transaction.amount
+        success = await update_user_balance(current_user["id"], new_sender_balance)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update sender balance")
+        
+        # Add to recipient
+        recipient_balance = await get_user_balance(recipient_id)
+        new_recipient_balance = recipient_balance + transaction.amount
+        success = await update_user_balance(recipient_id, new_recipient_balance)
+        if not success:
+            # Rollback sender's balance
+            await update_user_balance(current_user["id"], sender_balance)
+            raise HTTPException(status_code=500, detail="Failed to update recipient balance")
+        
+        # Record transaction for sender
+        sender_transaction = await add_transaction(
+            current_user["id"],
+            "transfer",
+            transaction.amount,
+            f"Transfer to {recipient_username}"
+        )
+        
+        # Record transaction for recipient
+        recipient_transaction = await add_transaction(
+            recipient_id,
+            "deposit",
+            transaction.amount,
+            f"Received from {current_user['username']}"
+        )
+        
+        return BankResponse(
+            success=True,
+            message=f"Successfully sent {transaction.amount:.2f} CRY to {recipient_username}",
+            balance=new_sender_balance,
+            transaction=TransactionResponse(
+                id=sender_transaction["id"],
+                user_id=sender_transaction["user_id"],
+                type=sender_transaction["type"],
+                amount=float(sender_transaction["amount"]),
+                description=sender_transaction.get("description"),
+                created_at=datetime.fromisoformat(sender_transaction["created_at"].replace('Z', '+00:00'))
+            ) if sender_transaction else None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in transfer: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error during transfer: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
