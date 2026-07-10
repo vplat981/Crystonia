@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crystonia · Bank Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f4fa;
+            color: #0b1a2b;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 2.5rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9eef3;
+        }
+        .card h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e3b5c;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .card .subtitle {
+            text-align: center;
+            color: #4e6f8a;
+            margin-bottom: 2rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #1e3b5c;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+            color: #1a314a;
+            font-size: 0.9rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #d9e3ed;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: #fafcfe;
+            transition: 0.15s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #1e3b5c;
+            box-shadow: 0 0 0 3px rgba(30, 59, 92, 0.1);
+        }
+        .btn {
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.15s;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #1e3b5c;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #143049;
+        }
+        .btn-success {
+            background: #2a7a5e;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #1e624a;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #4e6f8a;
+        }
+        .auth-toggle a {
+            color: #1e3b5c;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .auth-toggle a:hover {
+            color: #143049;
+        }
+        .status {
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .status.success {
+            display: block;
+            background: #e4f4ec;
+            color: #1a5a44;
+            border: 1px solid #b8d9cb;
+        }
+        .status.error {
+            display: block;
+            background: #fce8ea;
+            color: #8a2e3a;
+            border: 1px solid #f5cfd3;
+        }
+        .status.info {
+            display: block;
+            background: #e4edf6;
+            color: #1a3a57;
+            border: 1px solid #c5d8e8;
+        }
+        .hidden { display: none; }
+        .footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: #5f7f99;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        <h1>✦ Crystonia</h1>
+        <p class="subtitle"><i class="fas fa-university"></i> Royal Bank Login</p>
+        
+        <div id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" placeholder="your@email.com" />
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password" />
+            </div>
+            <button class="btn btn-primary" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <div class="auth-toggle">
+                Don't have an account? <a id="showSignup">Sign up</a>
+            </div>
+        </div>
+
+        <div id="signupForm" class="hidden">
+            <div class="form-group">
+                <label for="signupUsername">Username</label>
+                <input type="text" id="signupUsername" placeholder="Choose a username" />
+            </div>
+            <div class="form-group">
+                <label for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" placeholder="your@email.com" />
+            </div>
+            <div class="form-group">
+                <label for="signupFullName">Full Name (optional)</label>
+                <input type="text" id="signupFullName" placeholder="Your full name" />
+            </div>
+            <div class="form-group">
+                <label for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" placeholder="Create a password" />
+            </div>
+            <button class="btn btn-success" id="signupBtn"><i class="fas fa-user-plus"></i> Create Account</button>
+            <div class="auth-toggle">
+                Already have an account? <a id="showLogin">Login</a>
+            </div>
+        </div>
+
+        <div id="authStatus" class="status"></div>
+    </div>
+    <div class="footer">
+        <i class="fas fa-database"></i> Supabase · Python FastAPI · Render
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'https://crystonia.onrender.com';
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const authStatus = document.getElementById('authStatus');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const showSignup = document.getElementById('showSignup');
+    const showLogin = document.getElementById('showLogin');
+
+    function showStatus(message, type) {
+        authStatus.textContent = message;
+        authStatus.className = `status ${type}`;
+        setTimeout(() => { authStatus.className = 'status'; }, 5000);
+    }
+
+    function setLoading(isLoading, btn, originalText) {
+        if (!originalText) originalText = btn.innerHTML;
+        btn.disabled = isLoading;
+        btn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin"></i> Loading...' : originalText;
+        return originalText;
+    }
+
+    async function apiRequest(endpoint, method = 'POST', body = null) {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: body ? JSON.stringify(body) : null
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+        return data;
+    }
+
+    async function handleLogin() {
+        const email = loginEmail.value.trim();
+        const password = loginPassword.value;
+        if (!email || !password) {
+            showStatus('Please fill in all fields.', 'error');
+            return;
+        }
+        const originalText = loginBtn.innerHTML;
+        setLoading(true, loginBtn, originalText);
+        try {
+            const data = await apiRequest('/auth/login', 'POST', { email, password });
+            localStorage.setItem('authToken', data.access_token);
+            showStatus('Login successful! Redirecting...', 'success');
+            setTimeout(() => { window.location.href = '/dashboard.html'; }, 1000);
+        } catch (err) {
+            showStatus(err.message || 'Login failed.', 'error');
+        } finally {
+            setLoading(false, loginBtn, originalText);
+        }
+    }
+
+    async function handleSignup() {
+        const username = signupUsername.value.trim();
+        const email = signupEmail.value.trim();
+        const fullName = signupFullName.value.trim();
+        const password = signupPassword.value;
+        if (!username || !email || !password) {
+            showStatus('Please fill in all required fields.', 'error');
+            return;
+        }
+        const originalText = signupBtn.innerHTML;
+        setLoading(true, signupBtn, originalText);
+        try {
+            const data = await apiRequest('/auth/signup', 'POST', { username, email, password, full_name: fullName });
+            localStorage.setItem('authToken', data.access_token);
+            showStatus('Account created! Redirecting...', 'success');
+            setTimeout(() => { window.location.href = '/dashboard.html'; }, 1000);
+        } catch (err) {
+            showStatus(err.message || 'Signup failed.', 'error');
+        } finally {
+            setLoading(false, signupBtn, originalText);
+        }
+    }
+
+    loginBtn.addEventListener('click', handleLogin);
+    signupBtn.addEventListener('click', handleSignup);
+    showSignup.addEventListener('click', () => {
+        loginForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
+        authStatus.className = 'status';
+    });
+    showLogin.addEventListener('click', () => {
+        signupForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        authStatus.className = 'status';
+    });
+    loginPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+    signupPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') signupBtn.click(); });
+</script>
+</body>
+</html>
