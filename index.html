@@ -17,7 +17,6 @@
             min-height: 100vh;
         }
 
-        /* Navigation */
         .navbar {
             background: white;
             padding: 1rem 2rem;
@@ -66,15 +65,14 @@
         .navbar .nav-links .btn-login:hover {
             background: #143049;
         }
-        .navbar .nav-links .btn-logout {
-            background: #b13e4b;
+        .navbar .nav-links .btn-dashboard {
+            background: #2a7a5e;
             color: white;
         }
-        .navbar .nav-links .btn-logout:hover {
-            background: #932e3a;
+        .navbar .nav-links .btn-dashboard:hover {
+            background: #1e624a;
         }
 
-        /* Hero Section */
         .hero {
             background: linear-gradient(135deg, #1e3b5c 0%, #2a5a7a 100%);
             color: white;
@@ -124,13 +122,11 @@
             background: rgba(255,255,255,0.3);
         }
 
-        /* Main Content */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
         }
-
         .section-title {
             font-size: 2rem;
             font-weight: 700;
@@ -139,7 +135,6 @@
             text-align: center;
         }
 
-        /* Features Grid */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -175,18 +170,12 @@
             line-height: 1.5;
         }
 
-        /* Info Sections */
         .info-section {
             background: white;
             border-radius: 20px;
             padding: 2.5rem;
             margin: 2rem 0;
             border: 1px solid #e9eef3;
-        }
-        .info-section h2 {
-            color: #1e3b5c;
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
         }
         .info-grid {
             display: grid;
@@ -211,171 +200,6 @@
             margin-top: 0.3rem;
         }
 
-        /* Bank Login Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-        .modal.active {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 32px;
-            padding: 2.5rem;
-            max-width: 450px;
-            width: 100%;
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal-close {
-            position: absolute;
-            top: 1rem;
-            right: 1.5rem;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #4e6f8a;
-            background: none;
-            border: none;
-        }
-        .modal-close:hover {
-            color: #1a314a;
-        }
-        .modal-content h2 {
-            font-size: 1.8rem;
-            color: #1e3b5c;
-            margin-bottom: 0.5rem;
-        }
-        .modal-content .subtitle {
-            color: #4e6f8a;
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 0.3rem;
-            color: #1a314a;
-            font-size: 0.9rem;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border: 1px solid #d9e3ed;
-            border-radius: 12px;
-            font-size: 1rem;
-            background: #fafcfe;
-            transition: 0.15s;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #1e3b5c;
-            box-shadow: 0 0 0 3px rgba(30, 59, 92, 0.1);
-        }
-        .btn {
-            border: none;
-            padding: 0.8rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: 0.15s;
-            width: 100%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-primary {
-            background: #1e3b5c;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #143049;
-        }
-        .btn-success {
-            background: #2a7a5e;
-            color: white;
-        }
-        .btn-success:hover {
-            background: #1e624a;
-        }
-        .btn-danger {
-            background: #b13e4b;
-            color: white;
-        }
-        .btn-danger:hover {
-            background: #932e3a;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid #bccddb;
-            color: #1a314a;
-        }
-        .btn-outline:hover {
-            background: #f0f4fa;
-        }
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .auth-toggle {
-            text-align: center;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #4e6f8a;
-        }
-        .auth-toggle a {
-            color: #1e3b5c;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .auth-toggle a:hover {
-            color: #143049;
-        }
-        .status {
-            padding: 0.8rem 1.2rem;
-            border-radius: 12px;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            display: none;
-        }
-        .status.success {
-            display: block;
-            background: #e4f4ec;
-            color: #1a5a44;
-            border: 1px solid #b8d9cb;
-        }
-        .status.error {
-            display: block;
-            background: #fce8ea;
-            color: #8a2e3a;
-            border: 1px solid #f5cfd3;
-        }
-        .status.info {
-            display: block;
-            background: #e4edf6;
-            color: #1a3a57;
-            border: 1px solid #c5d8e8;
-        }
-        .hidden { display: none; }
-
-        /* Footer */
         .footer {
             text-align: center;
             padding: 2rem;
@@ -385,19 +209,15 @@
             margin-top: 2rem;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.5rem; }
             .navbar { flex-direction: column; align-items: stretch; }
             .navbar .nav-links { justify-content: center; }
-            .modal-content { padding: 1.5rem; }
-            .info-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="logo">
             ✦ Crystonia <span>micronation</span>
@@ -407,26 +227,20 @@
             <a href="#features">Features</a>
             <a href="#economy">Economy</a>
             <a href="#allies">Allies</a>
-            <a href="#" id="navLoginBtn" class="btn-login"><i class="fas fa-university"></i> Bank</a>
-            <a href="#" id="navLogoutBtn" class="btn-logout hidden"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            <span id="navUsername" class="hidden" style="font-weight: 500; color: #1e3b5c;"></span>
+            <a href="bank.html" class="btn-login"><i class="fas fa-university"></i> Bank</a>
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <section class="hero">
         <h1>✦ Welcome to Crystonia</h1>
         <p>The Crystal Republic — a sovereign micronation of innovation, trade, and digital prosperity.</p>
         <div class="cta-buttons">
-            <a href="#" class="btn btn-primary" id="heroBankBtn"><i class="fas fa-university"></i> Access Bank</a>
+            <a href="bank.html" class="btn btn-primary"><i class="fas fa-university"></i> Access Bank</a>
             <a href="#about" class="btn btn-secondary"><i class="fas fa-info-circle"></i> Learn More</a>
         </div>
     </section>
 
-    <!-- Main Container -->
     <div class="container">
-
-        <!-- About Section -->
         <section id="about">
             <h2 class="section-title">About Crystonia</h2>
             <div class="info-section">
@@ -453,7 +267,6 @@
             </div>
         </section>
 
-        <!-- Features -->
         <section id="features">
             <h2 class="section-title">Our Features</h2>
             <div class="features-grid">
@@ -480,7 +293,6 @@
             </div>
         </section>
 
-        <!-- Economy Section -->
         <section id="economy">
             <h2 class="section-title">Our Economy</h2>
             <div class="info-section">
@@ -505,7 +317,6 @@
             </div>
         </section>
 
-        <!-- Allies Section -->
         <section id="allies">
             <h2 class="section-title">Our Allies</h2>
             <div class="features-grid">
@@ -524,7 +335,6 @@
             </div>
         </section>
 
-        <!-- Footer -->
         <div class="footer">
             <p>✦ Crystonia · The Crystal Republic · Established 2026</p>
             <p style="margin-top: 0.5rem; font-size: 0.75rem;">
@@ -532,325 +342,5 @@
             </p>
         </div>
     </div>
-
-    <!-- Auth Modal -->
-    <div class="modal" id="authModal">
-        <div class="modal-content">
-            <button class="modal-close" id="modalClose">&times;</button>
-            <h2>✦ Crystonia Bank</h2>
-            <p class="subtitle"><i class="fas fa-university"></i> Royal Bank of Crystonia</p>
-            
-            <div id="loginForm">
-                <div class="form-group">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" placeholder="your@email.com" />
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter password" />
-                </div>
-                <button class="btn btn-primary" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
-                <div class="auth-toggle">
-                    Don't have an account? <a id="showSignup">Sign up</a>
-                </div>
-            </div>
-
-            <div id="signupForm" class="hidden">
-                <div class="form-group">
-                    <label for="signupUsername">Username</label>
-                    <input type="text" id="signupUsername" placeholder="Choose a username" />
-                </div>
-                <div class="form-group">
-                    <label for="signupEmail">Email</label>
-                    <input type="email" id="signupEmail" placeholder="your@email.com" />
-                </div>
-                <div class="form-group">
-                    <label for="signupFullName">Full Name (optional)</label>
-                    <input type="text" id="signupFullName" placeholder="Your full name" />
-                </div>
-                <div class="form-group">
-                    <label for="signupPassword">Password</label>
-                    <input type="password" id="signupPassword" placeholder="Create a password" />
-                </div>
-                <button class="btn btn-success" id="signupBtn"><i class="fas fa-user-plus"></i> Create Account</button>
-                <div class="auth-toggle">
-                    Already have an account? <a id="showLogin">Login</a>
-                </div>
-            </div>
-
-            <div id="authStatus" class="status"></div>
-        </div>
-    </div>
-
-    <script>
-        // ----- Configuration -----
-        const API_BASE_URL = 'https://crystonia.onrender.com';
-        let authToken = localStorage.getItem('authToken');
-        let currentUser = null;
-
-        // ----- DOM refs -----
-        const authModal = document.getElementById('authModal');
-        const modalClose = document.getElementById('modalClose');
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const authStatus = document.getElementById('authStatus');
-        const navLoginBtn = document.getElementById('navLoginBtn');
-        const navLogoutBtn = document.getElementById('navLogoutBtn');
-        const navUsername = document.getElementById('navUsername');
-        const heroBankBtn = document.getElementById('heroBankBtn');
-
-        // Auth elements
-        const loginEmail = document.getElementById('loginEmail');
-        const loginPassword = document.getElementById('loginPassword');
-        const loginBtn = document.getElementById('loginBtn');
-        const signupUsername = document.getElementById('signupUsername');
-        const signupEmail = document.getElementById('signupEmail');
-        const signupFullName = document.getElementById('signupFullName');
-        const signupPassword = document.getElementById('signupPassword');
-        const signupBtn = document.getElementById('signupBtn');
-        const showSignup = document.getElementById('showSignup');
-        const showLogin = document.getElementById('showLogin');
-
-        // ----- Helper functions -----
-        function showStatus(message, type, element) {
-            element.textContent = message;
-            element.className = `status ${type}`;
-            setTimeout(() => { element.className = 'status'; }, 5000);
-        }
-
-        function setLoading(isLoading, btn, originalText) {
-            if (!originalText) {
-                originalText = btn.innerHTML;
-            }
-            btn.disabled = isLoading;
-            if (isLoading) {
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-            } else {
-                btn.innerHTML = originalText;
-            }
-            return originalText;
-        }
-
-        function handleLogout() {
-            authToken = null;
-            localStorage.removeItem('authToken');
-            currentUser = null;
-            updateNavUI();
-            if (authModal.classList.contains('active')) {
-                authModal.classList.remove('active');
-            }
-            showStatus('Logged out successfully.', 'info', authStatus);
-        }
-
-        function updateNavUI() {
-            if (authToken && currentUser) {
-                navLoginBtn.classList.add('hidden');
-                navLogoutBtn.classList.remove('hidden');
-                navUsername.classList.remove('hidden');
-                navUsername.textContent = `👋 ${currentUser.username}`;
-                heroBankBtn.textContent = '🏦 Dashboard';
-                heroBankBtn.href = '#';
-            } else {
-                navLoginBtn.classList.remove('hidden');
-                navLogoutBtn.classList.add('hidden');
-                navUsername.classList.add('hidden');
-                heroBankBtn.textContent = '🏦 Access Bank';
-            }
-        }
-
-        // ----- API calls -----
-        async function apiRequest(endpoint, method = 'GET', body = null, requiresAuth = true) {
-            const headers = { 'Content-Type': 'application/json' };
-            if (requiresAuth && authToken) {
-                headers['Authorization'] = `Bearer ${authToken}`;
-            }
-
-            const options = { method, headers };
-            if (body) options.body = JSON.stringify(body);
-
-            try {
-                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-                const data = await response.json();
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        handleLogout();
-                    }
-                    throw new Error(data.detail || `HTTP ${response.status}`);
-                }
-                return data;
-            } catch (error) {
-                if (error.message.includes('401')) {
-                    handleLogout();
-                }
-                throw error;
-            }
-        }
-
-        // ----- Auth functions -----
-        async function handleLogin() {
-            const email = loginEmail.value.trim();
-            const password = loginPassword.value;
-
-            if (!email || !password) {
-                showStatus('Please fill in all fields.', 'error', authStatus);
-                return;
-            }
-
-            const originalText = loginBtn.innerHTML;
-            setLoading(true, loginBtn, originalText);
-            
-            try {
-                const data = await apiRequest('/auth/login', 'POST', { email, password }, false);
-                authToken = data.access_token;
-                localStorage.setItem('authToken', authToken);
-                await loadUserInfo();
-                showStatus('Welcome back! 🎉', 'success', authStatus);
-                setTimeout(() => {
-                    authModal.classList.remove('active');
-                    updateNavUI();
-                }, 1500);
-            } catch (err) {
-                showStatus(err.message || 'Login failed. Please try again.', 'error', authStatus);
-            } finally {
-                setLoading(false, loginBtn, originalText);
-            }
-        }
-
-        async function handleSignup() {
-            const username = signupUsername.value.trim();
-            const email = signupEmail.value.trim();
-            const fullName = signupFullName.value.trim();
-            const password = signupPassword.value;
-
-            if (!username || !email || !password) {
-                showStatus('Please fill in all required fields.', 'error', authStatus);
-                return;
-            }
-
-            const originalText = signupBtn.innerHTML;
-            setLoading(true, signupBtn, originalText);
-            
-            try {
-                const data = await apiRequest('/auth/signup', 'POST', { 
-                    username, 
-                    email, 
-                    password, 
-                    full_name: fullName 
-                }, false);
-                
-                authToken = data.access_token;
-                localStorage.setItem('authToken', authToken);
-                await loadUserInfo();
-                showStatus('Account created! Welcome to Crystonia! 🎉', 'success', authStatus);
-                setTimeout(() => {
-                    authModal.classList.remove('active');
-                    updateNavUI();
-                }, 1500);
-            } catch (err) {
-                showStatus(err.message || 'Signup failed. Please try again.', 'error', authStatus);
-            } finally {
-                setLoading(false, signupBtn, originalText);
-            }
-        }
-
-        async function loadUserInfo() {
-            try {
-                const userData = await apiRequest('/auth/me', 'GET');
-                currentUser = userData;
-                updateNavUI();
-                return userData;
-            } catch (err) {
-                console.error('Load user info error:', err);
-                throw err;
-            }
-        }
-
-        // ----- Modal controls -----
-        function openModal() {
-            authModal.classList.add('active');
-            // Reset forms
-            loginForm.classList.remove('hidden');
-            signupForm.classList.add('hidden');
-            authStatus.className = 'status';
-            loginEmail.value = '';
-            loginPassword.value = '';
-            signupUsername.value = '';
-            signupEmail.value = '';
-            signupPassword.value = '';
-            signupFullName.value = '';
-        }
-
-        function closeModal() {
-            authModal.classList.remove('active');
-            authStatus.className = 'status';
-        }
-
-        // ----- Event listeners -----
-        navLoginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (authToken && currentUser) {
-                // If logged in, open dashboard
-                window.location.href = '/dashboard.html'; // You'll need to create this page
-            } else {
-                openModal();
-            }
-        });
-
-        heroBankBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (authToken && currentUser) {
-                // If logged in, open dashboard
-                window.location.href = '/dashboard.html'; // You'll need to create this page
-            } else {
-                openModal();
-            }
-        });
-
-        modalClose.addEventListener('click', closeModal);
-        authModal.addEventListener('click', (e) => {
-            if (e.target === authModal) closeModal();
-        });
-
-        loginBtn.addEventListener('click', handleLogin);
-        signupBtn.addEventListener('click', handleSignup);
-        navLogoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleLogout();
-        });
-
-        showSignup.addEventListener('click', () => {
-            loginForm.classList.add('hidden');
-            signupForm.classList.remove('hidden');
-            authStatus.className = 'status';
-        });
-
-        showLogin.addEventListener('click', () => {
-            signupForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-            authStatus.className = 'status';
-        });
-
-        // Enter key support
-        loginPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') loginBtn.click(); });
-        signupPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') signupBtn.click(); });
-
-        // ----- Init -----
-        async function init() {
-            if (authToken) {
-                try {
-                    await loadUserInfo();
-                    updateNavUI();
-                } catch (error) {
-                    console.error('Auto-login failed:', error);
-                    localStorage.removeItem('authToken');
-                    authToken = null;
-                    updateNavUI();
-                }
-            }
-        }
-
-        // Start the app
-        init();
-    </script>
 </body>
 </html>
